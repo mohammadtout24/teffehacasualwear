@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found — Teffaha Casual Wear{% endblock %}
+
+{% block content %}
+<div class="container narrow">
+  <div class="empty empty--page">
+    <p class="eyebrow">Error 404</p>
+    <h1 class="page-head__title">This page slipped off the hanger</h1>
+    <p>The page you’re looking for doesn’t exist or has moved.</p>
+    <a class="btn btn--primary" href="{% url 'store:home' %}">Back to the shop</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% load store_tags %}
+<div class="drawer__head">
+  <span class="drawer__title">{% if added %}Added to your bag{% else %}Your bag{% endif %}</span>
+  <button class="icon-btn" type="button" aria-label="Close bag" data-close>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+</div>
+{% if cart.lines %}
+  <ul class="mini-cart">
+    {% for line in cart.lines %}
+      <li class="mini-cart__item{% if added and line.product.pk == added.pk %} is-new{% endif %}">
+        <a href="{{ line.product.get_absolute_url }}" class="mini-cart__img">
+          {% if line.image %}<img src="{{ line.image.image.url }}" alt="">{% endif %}
+        </a>
+        <div class="mini-cart__info">
+          <a href="{{ line.product.get_absolute_url }}" class="mini-cart__name">{{ line.product.name }}</a>
+          <span class="mini-cart__meta">{% if line.color %}{{ line.color }}{% endif %}{% if line.color and line.size %} · {% endif %}{% if line.size %}Size {{ line.size }}{% endif %}</span>
+          <span class="mini-cart__meta">Qty {{ line.quantity }}</span>
+        </div>
+        <span class="mini-cart__price">{% money line.line_total %}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  <div class="drawer__foot">
+    <div class="summary-row summary-row--total"><span>Subtotal</span><span>{% money cart.subtotal %}</span></div>
+    <p class="muted small">Delivery calculated at checkout · Pay cash on delivery</p>
+    <a class="btn btn--primary btn--block" href="{% url 'store:checkout' %}">Checkout</a>
+    <a class="btn btn--outline btn--block" href="{% url 'store:cart' %}">View bag</a>
+  </div>
+{% else %}
+  <div class="drawer__empty">
+    <p>Your bag is empty.</p>
+    <a class="btn btn--primary" href="{% url 'store:new_in' %}">Discover new in</a>
+  </div>
+{% endif %}

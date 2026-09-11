@@ -1,0 +1,7 @@
+<svg class="logo-circle" viewBox="0 0 200 200" role="img" aria-label="Teffaha Casual Wear">
+  <circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width="2"/>
+  <text x="100" y="104" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-size="40" font-weight="500">Teffaha</text>
+  <line x1="26" y1="126.5" x2="42" y2="126.5" stroke="currentColor" stroke-width="1"/>
+  <line x1="158" y1="126.5" x2="174" y2="126.5" stroke="currentColor" stroke-width="1"/>
+  <text x="101.5" y="130" text-anchor="middle" font-family="Jost, Arial, sans-serif" font-size="10" letter-spacing="3">CASUAL WEAR</text>
+</svg>

@@ -1,0 +1,36 @@
+{% load store_tags %}
+<article class="card">
+  <a class="card__media" href="{{ product.get_absolute_url }}">
+    {% with img=product.main_image hover=product.hover_image %}
+      {% if img %}
+        <img class="card__img" src="{{ img.image.url }}" alt="{{ img.alt|default:product.name }}" loading="lazy">
+        {% if hover %}<img class="card__img card__img--hover" src="{{ hover.image.url }}" alt="" loading="lazy">{% endif %}
+      {% else %}
+        <span class="card__placeholder">Teffaha</span>
+      {% endif %}
+    {% endwith %}
+    <span class="card__badges">
+      {% if not product.in_stock %}<span class="badge badge--muted">Sold out</span>
+      {% elif product.on_sale %}<span class="badge badge--sale">−{{ product.discount_percent }}%</span>
+      {% elif product.is_featured and not hide_bestseller_badge %}<span class="badge">Best seller</span>{% endif %}
+    </span>
+    <span class="card__cta">View product</span>
+  </a>
+  <div class="card__body">
+    <h3 class="card__name"><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+    <p class="price">
+      <span class="price__now{% if product.on_sale %} price__now--sale{% endif %}">{% money product.price %}</span>
+      {% if product.on_sale %}<s class="price__was">{% money product.compare_at_price %}</s>{% endif %}
+    </p>
+    {% with colors=product.colors.all %}
+      {% if colors|length > 1 %}
+        <ul class="card__swatches" aria-label="Available colors">
+          {% for color in colors|slice:":5" %}
+            <li class="swatch-dot{% if color.hex_code|is_light %} swatch-dot--light{% endif %}" style="--c: {{ color.hex_code }}" title="{{ color.name }}"></li>
+          {% endfor %}
+          {% if colors|length > 5 %}<li class="card__more">+{{ colors|length|add:"-5" }}</li>{% endif %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  </div>
+</article>

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load store_tags %}
+
+{% block title %}{{ title }} — Teffaha Casual Wear{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div class="container">
+    {% if breadcrumbs %}
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="{% url 'store:home' %}">Home</a>
+        {% for crumb in breadcrumbs %}
+          {% if forloop.last %}<span aria-current="page">{{ crumb.name }}</span>{% else %}<a href="{{ crumb.get_absolute_url }}">{{ crumb.name }}</a>{% endif %}
+        {% endfor %}
+      </nav>
+    {% endif %}
+    <h1 class="page-head__title">{{ title }}</h1>
+    {% if intro %}<p class="page-head__intro">{{ intro }}</p>{% endif %}
+
+    {% if sidebar_categories %}
+      <div class="chips" aria-label="Categories">
+        {% if sidebar_parent %}
+          <a class="chip{% if category == sidebar_parent %} is-active{% endif %}" href="{{ sidebar_parent.get_absolute_url }}">All {{ sidebar_parent.name }}</a>
+        {% endif %}
+        {% for sub in sidebar_categories %}
+          <a class="chip{% if category == sub %} is-active{% endif %}" href="{{ sub.get_absolute_url }}">{{ sub.name }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<div class="container listing">
+  <aside class="filters" data-panel="filters" id="filters">
+    <div class="filters__head">
+      <span class="drawer__title">Filter</span>
+      <button class="icon-btn filters__close" type="button" aria-label="Close filters" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+
+    {% if sidebar_categories %}
+      <div class="filter-group">
+        <h2 class="filter-group__title">Category</h2>
+        <ul class="filter-links">
+          {% for sub in sidebar_categories %}
+            <li><a class="{% if category == sub %}is-active{% endif %}" href="{{ sub.get_absolute_url }}">{{ sub.name }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if available_sizes %}
+      <div class="filter-group">
+        <h2 class="filter-group__title">Size</h2>
+        <div class="size-chips">
+          {% for size in available_sizes %}
+            <a class="size-chip{% if size.name in selected_sizes %} is-active{% endif %}" href="{% query_toggle 'size' size.name %}" rel="nofollow">{{ size.name }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% if available_colors %}
+      <div class="filter-group">
+        <h2 class="filter-group__title">Color</h2>
+        <ul class="color-filters">
+          {% for color in available_colors %}
+            <li>
+              <a class="color-filter{% if color.name in selected_colors %} is-active{% endif %}" href="{% query_toggle 'color' color.name %}" rel="nofollow">
+                <span class="swatch-dot{% if color.hex_code|is_light %} swatch-dot--light{% endif %}" style="--c: {{ color.hex_code }}"></span>{{ color.name }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form class="filter-group" method="get">
+      <h2 class="filter-group__title">Price</h2>
+      {% for key, values in request.GET.lists %}
+        {% if key != 'min' and key != 'max' and key != 'page' %}
+          {% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}
+        {% endif %}
+      {% endfor %}
+      <div class="price-range">
+        <label><span class="sr-only">Minimum price</span><input type="number" name="min" min="0" step="1" placeholder="Min" value="{{ min_price }}"></label>
+        <span>–</span>
+        <label><span class="sr-only">Maximum price</span><input type="number" name="max" min="0" step="1" placeholder="Max" value="{{ max_price }}"></label>
+        <button class="btn btn--small btn--outline" type="submit">Go</button>
+      </div>
+    </form>
+
+    {% if collection != 'sale' %}
+      <div class="filter-group">
+        <a class="toggle-link{% if only_sale %} is-active{% endif %}" href="{% if only_sale %}{% query_with sale=None %}{% else %}{% query_with sale='1' %}{% endif %}" rel="nofollow">
+          <span class="toggle-link__box"></span> On sale only
+        </a>
+      </div>
+    {% endif %}
+
+    {% if filter_count %}
+      <a class="link-btn filters__clear" href="?{% if query %}q={{ query|urlencode }}{% endif %}">Clear all filters</a>
+    {% endif %}
+  </aside>
+
+  <section class="listing__main">
+    <div class="toolbar">
+      <button class="btn btn--outline btn--small filters-toggle" type="button" data-open="filters">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Filter{% if filter_count %} ({{ filter_count }}){% endif %}
+      </button>
+      <p class="toolbar__count">{{ page_obj.paginator.count }} item{{ page_obj.paginator.count|pluralize }}</p>
+      <form method="get" class="toolbar__sort">
+        {% for key, values in request.GET.lists %}
+          {% if key != 'sort' and key != 'page' %}
+            {% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}
+          {% endif %}
+        {% endfor %}
+        <label for="sort">Sort by</label>
+        <select id="sort" name="sort" data-autosubmit>
+          {% for key, label in sort_options %}<option value="{{ key }}"{% if key == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
+
+    {% if selected_sizes or selected_colors or only_sale %}
+      <div class="active-filters">
+        {% for s in selected_sizes %}<a class="chip chip--removable" href="{% query_toggle 'size' s %}">Size {{ s }}</a>{% endfor %}
+        {% for c in selected_colors %}<a class="chip chip--removable" href="{% query_toggle 'color' c %}">{{ c }}</a>{% endfor %}
+        {% if only_sale %}<a class="chip chip--removable" href="{% query_with sale=None %}">On sale</a>{% endif %}
+      </div>
+    {% endif %}
+
+    {% if products %}
+      <div class="grid grid--products grid--listing">
+        {% for product in products %}{% include "store/partials/product_card.html" %}{% endfor %}
+      </div>
+
+      {% if page_obj.has_other_pages %}
+        <nav class="pagination" aria-label="Pages">
+          {% if page_obj.has_previous %}<a href="{% query_with page=page_obj.previous_page_number %}" aria-label="Previous page">‹</a>{% endif %}
+          {% for n in page_obj.paginator.page_range %}
+            {% if n == page_obj.number %}<span class="is-active" aria-current="page">{{ n }}</span>
+            {% else %}<a href="{% query_with page=n %}">{{ n }}</a>{% endif %}
+          {% endfor %}
+          {% if page_obj.has_next %}<a href="{% query_with page=page_obj.next_page_number %}" aria-label="Next page">›</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty">
+        <h2>No pieces found</h2>
+        <p>{% if query %}We couldn’t find anything for “{{ query }}”. Try another word.{% else %}Try removing a filter, or check back soon — new styles land often.{% endif %}</p>
+        <a class="btn btn--primary" href="{% url 'store:shop' %}">Shop all</a>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load store_tags %}
+
+{% block title %}{{ product.name }} — Teffaha Casual Wear{% endblock %}
+{% block meta_description %}{{ product.description|truncatechars:155 }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  {% if breadcrumbs %}
+    <nav class="breadcrumbs breadcrumbs--pad" aria-label="Breadcrumb">
+      <a href="{% url 'store:home' %}">Home</a>
+      {% for crumb in breadcrumbs %}<a href="{{ crumb.get_absolute_url }}">{{ crumb.name }}</a>{% endfor %}
+      <span aria-current="page">{{ product.name }}</span>
+    </nav>
+  {% endif %}
+
+  <div class="pdp" data-product>
+    <div class="gallery" data-gallery>
+      <div class="gallery__main">
+        {% with first=images.0 %}
+          {% if first %}
+            <img src="{{ first.image.url }}" alt="{{ first.alt|default:product.name }}" data-gallery-main>
+          {% else %}
+            <span class="card__placeholder">Teffaha</span>
+          {% endif %}
+        {% endwith %}
+        {% if product.on_sale %}<span class="badge badge--sale gallery__badge">−{{ product.discount_percent }}%</span>{% endif %}
+      </div>
+      {% if images|length > 1 %}
+        <div class="gallery__thumbs">
+          {% for img in images %}
+            <button type="button" class="gallery__thumb{% if forloop.first %} is-active{% endif %}" data-src="{{ img.image.url }}" {% if img.color %}data-color="{{ img.color.name }}"{% endif %} aria-label="Show image {{ forloop.counter }}">
+              <img src="{{ img.image.url }}" alt="" loading="lazy">
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="pdp__info">
+      <h1 class="pdp__name">{{ product.name }}</h1>
+      <p class="price price--lg">
+        <span class="price__now{% if product.on_sale %} price__now--sale{% endif %}">{% money product.price %}</span>
+        {% if product.on_sale %}<s class="price__was">{% money product.compare_at_price %}</s><span class="badge badge--sale">Save {% money product.savings %}</span>{% endif %}
+      </p>
+
+      <form class="buy-form" method="post" action="{% url 'store:cart_add' product.pk %}" data-add-to-cart>
+        {% csrf_token %}
+        {% if colors %}
+            <fieldset class="option">
+              <legend class="option__label">Color: <strong data-color-label>{{ colors.0.name }}</strong></legend>
+              <div class="swatches">
+                {% for color in colors %}
+                  <label class="swatch{% if color.hex_code|is_light %} swatch--light{% endif %}" title="{{ color.name }}">
+                    <input type="radio" name="color" value="{{ color.name }}"{% if forloop.first %} checked{% endif %}>
+                    <span style="--c: {{ color.hex_code }}"></span>
+                    <span class="sr-only">{{ color.name }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+        {% endif %}
+
+        {% with sizes=product.sizes.all %}
+          {% if sizes %}
+            <fieldset class="option">
+              <legend class="option__label">Size: <strong data-size-label>Select a size</strong></legend>
+              <div class="sizes">
+                {% for size in sizes %}
+                  <label class="size-box">
+                    <input type="radio" name="size" value="{{ size.name }}"{% if sizes|length == 1 %} checked{% endif %}>
+                    <span>{{ size.name }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+          {% endif %}
+        {% endwith %}
+
+        <div class="buy-form__row">
+          <div class="qty" data-qty>
+            <button type="button" aria-label="Decrease quantity" data-step="-1">−</button>
+            <input type="number" name="quantity" value="1" min="1" max="20" aria-label="Quantity">
+            <button type="button" aria-label="Increase quantity" data-step="1">+</button>
+          </div>
+          {% if product.in_stock %}
+            <button class="btn btn--primary btn--grow" type="submit">Add to bag</button>
+          {% else %}
+            <button class="btn btn--primary btn--grow" type="button" disabled>Sold out</button>
+          {% endif %}
+        </div>
+        <p class="form-error" data-form-error hidden></p>
+      </form>
+
+      <ul class="assurances">
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="1.5"/><circle cx="12" cy="12.5" r="2.5"/></svg>
+          <span><strong>Cash on delivery</strong> — pay when it arrives</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7h12v9H2zM14 10h4l3 3v3h-7z"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>
+          <span><strong>Delivery in {{ store.delivery_time }}</strong>{% if store.free_delivery_over %} · free over {% money store.free_delivery_over %}{% endif %}</span>
+        </li>
+      </ul>
+
+      <div class="accordion">
+        {% if product.description %}
+          <details open>
+            <summary>Description</summary>
+            <div class="accordion__body">{{ product.description|linebreaks }}</div>
+          </details>
+        {% endif %}
+        {% if product.detail_lines %}
+          <details>
+            <summary>Fabric &amp; care</summary>
+            <ul class="accordion__body bullet-list">{% for line in product.detail_lines %}<li>{{ line }}</li>{% endfor %}</ul>
+          </details>
+        {% endif %}
+        <details>
+          <summary>Delivery &amp; payment</summary>
+          <div class="accordion__body">
+            <p>We deliver in {{ store.delivery_time }}. Delivery costs {% money store.delivery_fee %}{% if store.free_delivery_over %} and is free for orders over {% money store.free_delivery_over %}{% endif %}.</p>
+            <p>Payment is cash on delivery only — no card details are ever needed. We will call you to confirm your order before it ships.</p>
+          </div>
+        </details>
+      </div>
+      {% if product.sku %}<p class="muted small">SKU: {{ product.sku }}</p>{% endif %}
+    </div>
+  </div>
+</div>
+
+{% if related %}
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <h2 class="section__title">You may also like</h2>
+    </div>
+    <div class="grid grid--products">
+      {% for product in related %}{% include "store/partials/product_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

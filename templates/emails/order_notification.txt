@@ -1,0 +1,19 @@
+{% load store_tags %}{% autoescape off %}NEW ORDER {{ order.number }} — CASH ON DELIVERY
+Placed {{ order.created_at|date:"D j M Y, H:i" }}
+
+CUSTOMER
+{{ order.full_name }}
+Phone: {{ order.phone }}{% if order.email %}
+Email: {{ order.email }}{% endif %}
+Address: {{ order.address }}, {{ order.city }}{% if order.notes %}
+Notes: {{ order.notes }}{% endif %}
+
+ITEMS
+{% for item in items %}- {{ item.quantity }} x {{ item.product_name }}{% if item.color %} / {{ item.color }}{% endif %}{% if item.size %} / Size {{ item.size }}{% endif %} — {% money item.line_total order.currency %}
+{% endfor %}
+Subtotal: {% money order.subtotal order.currency %}
+Delivery: {% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}
+TOTAL TO COLLECT: {% money order.total order.currency %}
+{% if admin_url %}
+Open in admin: {{ admin_url }}{% endif %}
+{% endautoescape %}

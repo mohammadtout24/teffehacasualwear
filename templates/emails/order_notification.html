@@ -1,0 +1,62 @@
+{% load store_tags %}<!doctype html>
+<html>
+<body style="margin:0;padding:0;background:#f4eee8;font-family:Arial,Helvetica,sans-serif;color:#2a1a1c;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4eee8;padding:24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fbf8f3;border:1px solid #e9e1d8;">
+        <tr>
+          <td style="background:#7a0f1f;padding:22px 28px;text-align:center;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;color:#fbf8f3;">Teffaha</div>
+            <div style="font-size:10px;letter-spacing:4px;color:#f1d9d6;margin-top:2px;">CASUAL WEAR</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px;">
+            <p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;color:#7a0f1f;text-transform:uppercase;">New order · Cash on delivery</p>
+            <h1 style="margin:0 0 6px;font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-size:26px;">Order {{ order.number }}</h1>
+            <p style="margin:0 0 22px;color:#7d6f6f;font-size:13px;">Placed {{ order.created_at|date:"D j M Y, H:i" }}</p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #e9e1d8;margin-bottom:22px;">
+              <tr><td style="padding:16px 18px;font-size:14px;line-height:1.6;">
+                <strong style="display:block;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#7a0f1f;margin-bottom:6px;">Customer</strong>
+                {{ order.full_name }}<br>
+                <a href="tel:{{ order.phone }}" style="color:#2a1a1c;">{{ order.phone }}</a><br>
+                {% if order.email %}<a href="mailto:{{ order.email }}" style="color:#2a1a1c;">{{ order.email }}</a><br>{% endif %}
+                {{ order.address }}, {{ order.city }}
+                {% if order.notes %}<br><br><strong>Notes:</strong> {{ order.notes|linebreaksbr }}{% endif %}
+              </td></tr>
+            </table>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse;">
+              <tr style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#7d6f6f;">
+                <td style="padding:0 0 8px;border-bottom:1px solid #e9e1d8;">Item</td>
+                <td style="padding:0 0 8px;border-bottom:1px solid #e9e1d8;text-align:center;">Qty</td>
+                <td style="padding:0 0 8px;border-bottom:1px solid #e9e1d8;text-align:right;">Total</td>
+              </tr>
+              {% for item in items %}
+              <tr>
+                <td style="padding:12px 0;border-bottom:1px solid #e9e1d8;">
+                  <strong>{{ item.product_name }}</strong><br>
+                  <span style="color:#7d6f6f;font-size:13px;">{% if item.color %}{{ item.color }}{% endif %}{% if item.color and item.size %} · {% endif %}{% if item.size %}Size {{ item.size }}{% endif %}{% if item.color or item.size %} · {% endif %}{% money item.unit_price order.currency %} each</span>
+                </td>
+                <td style="padding:12px 0;border-bottom:1px solid #e9e1d8;text-align:center;">{{ item.quantity }}</td>
+                <td style="padding:12px 0;border-bottom:1px solid #e9e1d8;text-align:right;">{% money item.line_total order.currency %}</td>
+              </tr>
+              {% endfor %}
+              <tr><td colspan="2" style="padding:12px 0 4px;color:#7d6f6f;">Subtotal</td><td style="padding:12px 0 4px;text-align:right;">{% money order.subtotal order.currency %}</td></tr>
+              <tr><td colspan="2" style="padding:4px 0;color:#7d6f6f;">Delivery</td><td style="padding:4px 0;text-align:right;">{% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}</td></tr>
+              <tr><td colspan="2" style="padding:10px 0 0;font-size:16px;"><strong>Total to collect</strong></td><td style="padding:10px 0 0;text-align:right;font-size:18px;color:#7a0f1f;"><strong>{% money order.total order.currency %}</strong></td></tr>
+            </table>
+
+            {% if admin_url %}
+            <p style="margin:28px 0 0;text-align:center;">
+              <a href="{{ admin_url }}" style="display:inline-block;background:#7a0f1f;color:#fbf8f3;text-decoration:none;padding:12px 26px;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;">Open order in admin</a>
+            </p>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

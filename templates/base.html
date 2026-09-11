@@ -1,0 +1,216 @@
+{% load static store_tags %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Teffaha Casual Wear{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Teffaha Casual Wear — everyday tops, dresses, sets, jackets and sportswear for women and men. Cash on delivery.{% endblock %}">
+  <meta name="theme-color" content="#7A0F1F">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="announcement">
+    <p>
+      {{ store.announcement|default:"Cash on delivery on every order" }}
+      {% if store.free_delivery_over %}<span class="announcement__sep">·</span> Free delivery over {% money store.free_delivery_over %}{% endif %}
+    </p>
+  </div>
+
+  <header class="site-header" data-header>
+    <div class="header-bar container">
+      <div class="header-bar__left">
+        <button class="icon-btn menu-toggle" type="button" aria-label="Open menu" data-open="menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+        </button>
+        <button class="icon-btn search-toggle" type="button" aria-label="Search" data-open="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        </button>
+      </div>
+
+      <a class="brand" href="{% url 'store:home' %}" aria-label="Teffaha Casual Wear — home">
+        {% if store.logo %}
+          <img src="{{ store.logo.url }}" alt="Teffaha Casual Wear" class="brand__img">
+        {% else %}
+          <span class="brand__word">Teffaha</span>
+          <span class="brand__tag">Casual Wear</span>
+        {% endif %}
+      </a>
+
+      <div class="header-bar__right">
+        <a class="icon-btn bag-link" href="{% url 'store:cart' %}" aria-label="Shopping bag" data-open-drawer>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
+          <span class="bag-count" data-cart-count {% if not cart_count %}hidden{% endif %}>{{ cart_count }}</span>
+        </a>
+      </div>
+    </div>
+
+    <nav class="main-nav" aria-label="Main">
+      <ul class="main-nav__list">
+        <li><a href="{% url 'store:new_in' %}">New In</a></li>
+        {% for dept in nav_categories %}
+          <li class="has-mega">
+            <a href="{{ dept.get_absolute_url }}">{{ dept.name }}</a>
+            <div class="mega">
+              <div class="mega__inner container">
+                <div class="mega__cols">
+                  {% for group in dept.children.all %}
+                    <div class="mega__col">
+                      <a class="mega__head" href="{{ group.get_absolute_url }}">{{ group.name }}</a>
+                      {% for leaf in group.children.all %}
+                        <a class="mega__link" href="{{ leaf.get_absolute_url }}">{{ leaf.name }}</a>
+                      {% endfor %}
+                    </div>
+                  {% endfor %}
+                </div>
+                <a class="mega__feature" href="{{ dept.get_absolute_url }}">
+                  {% with cover=dept.cover_image %}{% if cover %}<img src="{{ cover.url }}" alt="" loading="lazy">{% endif %}{% endwith %}
+                  <span>Shop all {{ dept.name }}</span>
+                </a>
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+        <li><a class="nav-sale" href="{% url 'store:sale' %}">Sale</a></li>
+      </ul>
+    </nav>
+
+    <div class="search-panel" data-panel="search" hidden>
+      <form class="search-form container" action="{% url 'store:search' %}" method="get" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input type="search" name="q" placeholder="Search for dresses, hoodies, jeans…" aria-label="Search products" value="{{ query|default:'' }}">
+        <button type="button" class="link-btn" data-close>Close</button>
+      </form>
+    </div>
+  </header>
+
+  {# Mobile menu #}
+  <div class="drawer drawer--left" data-panel="menu" hidden>
+    <div class="drawer__backdrop" data-close></div>
+    <aside class="drawer__panel" aria-label="Menu">
+      <div class="drawer__head">
+        <span class="drawer__title">Menu</span>
+        <button class="icon-btn" type="button" aria-label="Close menu" data-close>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <nav class="mobile-nav">
+        <a class="mobile-nav__top" href="{% url 'store:new_in' %}">New In</a>
+        {% for dept in nav_categories %}
+          <details class="mobile-nav__group">
+            <summary>{{ dept.name }}</summary>
+            <a class="mobile-nav__all" href="{{ dept.get_absolute_url }}">Shop all {{ dept.name }}</a>
+            {% for group in dept.children.all %}
+              {% if group.children.all %}
+                <details class="mobile-nav__sub">
+                  <summary>{{ group.name }}</summary>
+                  <a href="{{ group.get_absolute_url }}">All {{ group.name }}</a>
+                  {% for leaf in group.children.all %}<a href="{{ leaf.get_absolute_url }}">{{ leaf.name }}</a>{% endfor %}
+                </details>
+              {% else %}
+                <a class="mobile-nav__leaf" href="{{ group.get_absolute_url }}">{{ group.name }}</a>
+              {% endif %}
+            {% endfor %}
+          </details>
+        {% endfor %}
+        <a class="mobile-nav__top nav-sale" href="{% url 'store:sale' %}">Sale</a>
+      </nav>
+      <div class="drawer__foot">
+        <p><strong>Cash on delivery</strong><br>Pay when your order arrives.</p>
+        {% if store.whatsapp %}<a class="btn btn--outline btn--block" href="https://wa.me/{{ store.whatsapp }}" target="_blank" rel="noopener">Chat on WhatsApp</a>{% endif %}
+      </div>
+    </aside>
+  </div>
+
+  {# Bag drawer (filled after "Add to bag") #}
+  <div class="drawer drawer--right" data-panel="bag" hidden>
+    <div class="drawer__backdrop" data-close></div>
+    <aside class="drawer__panel" aria-label="Shopping bag" data-drawer-body>
+      {% include "store/partials/cart_drawer_body.html" %}
+    </aside>
+  </div>
+
+  {% if messages %}
+    <div class="toasts" data-toasts>
+      {% for message in messages %}
+        <div class="toast toast--{{ message.tags }}" role="status">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <section class="perks">
+    <div class="container perks__grid">
+      <div class="perk">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="9" width="24" height="15" rx="2"/><circle cx="16" cy="16.5" r="3.5"/><path d="M8 13v7M24 13v7"/></svg>
+        <div><strong>Cash on delivery</strong><span>Pay when your order arrives</span></div>
+      </div>
+      <div class="perk">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 9h16v12H3zM19 13h5l4 4v4h-9z"/><circle cx="8" cy="23" r="2.4"/><circle cx="23" cy="23" r="2.4"/></svg>
+        <div><strong>Delivery in {{ store.delivery_time }}</strong><span>{% if store.free_delivery_over %}Free over {% money store.free_delivery_over %}{% else %}Straight to your door{% endif %}</span></div>
+      </div>
+      <div class="perk">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 11a10 10 0 0 1 18-2M26 21a10 10 0 0 1-18 2"/><path d="M24 4v5h-5M8 28v-5h5"/></svg>
+        <div><strong>Order confirmation call</strong><span>We call to confirm every order</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container site-footer__grid">
+      <div class="site-footer__brand">
+        {% include "store/partials/logo_circle.svg" %}
+        <p>Comfortable, feminine and effortless — casual wear designed for every day.</p>
+        <div class="socials">
+          {% if store.instagram_url %}<a href="{{ store.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".6" fill="currentColor"/></svg></a>{% endif %}
+          {% if store.facebook_url %}<a href="{{ store.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M14 8.5V7c0-.8.5-1.2 1.2-1.2H17V3h-2.6C11.8 3 11 4.7 11 6.8v1.7H9V11h2v10h3V11h2.5l.5-2.5z"/></svg></a>{% endif %}
+          {% if store.tiktok_url %}<a href="{{ store.tiktok_url }}" target="_blank" rel="noopener" aria-label="TikTok"><svg viewBox="0 0 24 24"><path d="M14 3v11.5a3.5 3.5 0 1 1-3-3.46M14 3c.4 2.6 2 4.3 5 4.5"/></svg></a>{% endif %}
+          {% if store.whatsapp %}<a href="https://wa.me/{{ store.whatsapp }}" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24"><path d="M4 20l1.2-3.7A8 8 0 1 1 8 19z"/><path d="M9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 .8c-1-.5-2.2-1.7-2.7-2.7l.8-1-1-2z"/></svg></a>{% endif %}
+        </div>
+      </div>
+      <div>
+        <h3 class="site-footer__title">Shop</h3>
+        <ul>
+          <li><a href="{% url 'store:new_in' %}">New In</a></li>
+          {% for dept in nav_categories %}<li><a href="{{ dept.get_absolute_url }}">{{ dept.name }}</a></li>{% endfor %}
+          <li><a href="{% url 'store:sale' %}">Sale</a></li>
+          <li><a href="{% url 'store:shop' %}">Shop all</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="site-footer__title">Ordering</h3>
+        <ul>
+          <li>Cash on delivery only</li>
+          <li>Delivery in {{ store.delivery_time }}</li>
+          <li>Delivery fee {% money store.delivery_fee %}{% if store.free_delivery_over %} · free over {% money store.free_delivery_over %}{% endif %}</li>
+          <li><a href="{% url 'store:cart' %}">Your bag</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="site-footer__title">Contact</h3>
+        <ul>
+          {% if store.phone %}<li><a href="tel:{{ store.phone }}">{{ store.phone }}</a></li>{% endif %}
+          {% if store.whatsapp %}<li><a href="https://wa.me/{{ store.whatsapp }}" target="_blank" rel="noopener">WhatsApp us</a></li>{% endif %}
+          {% if store.address %}<li>{{ store.address }}</li>{% endif %}
+          {% if store.instagram_url %}<li><a href="{{ store.instagram_url }}" target="_blank" rel="noopener">Instagram</a></li>{% endif %}
+          {% if not store.phone and not store.whatsapp and not store.address and not store.instagram_url %}<li>Add your phone and socials in Admin → Store settings.</li>{% endif %}
+        </ul>
+      </div>
+    </div>
+    <div class="container site-footer__bottom">
+      <span>© {% now "Y" %} Teffaha Casual Wear. All rights reserved.</span>
+      <span>Payment: cash on delivery</span>
+    </div>
+  </footer>
+
+  <script src="{% static 'js/main.js' %}" defer></script>
+</body>
+</html>

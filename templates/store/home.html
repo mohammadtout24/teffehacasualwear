@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load store_tags %}
+
+{% block content %}
+<section class="hero">
+  <div class="container hero__grid">
+    <div class="hero__copy">
+      <p class="eyebrow">New season · Teffaha Casual Wear</p>
+      <h1 class="hero__title">{{ store.hero_title }}</h1>
+      {% if store.hero_subtitle %}<p class="hero__subtitle">{{ store.hero_subtitle }}</p>{% endif %}
+      <div class="hero__actions">
+        {% for dept in departments %}
+          <a class="btn {% if forloop.first %}btn--primary{% else %}btn--outline{% endif %}" href="{{ dept.get_absolute_url }}">Shop {{ dept.name }}</a>
+        {% endfor %}
+      </div>
+      <p class="hero__note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="11" rx="1.5"/><circle cx="12" cy="12.5" r="2.5"/></svg>
+        No card needed — pay cash when your order arrives
+      </p>
+    </div>
+
+    <div class="hero__visual">
+      {% if store.hero_image %}
+        <div class="arch arch--solo"><img src="{{ store.hero_image.url }}" alt=""></div>
+      {% else %}
+        {% for p in hero_products %}
+          {% with img=p.main_image %}
+            <a href="{{ p.get_absolute_url }}" class="arch arch--{{ forloop.counter }}">
+              {% if img %}<img src="{{ img.image.url }}" alt="{{ p.name }}">{% endif %}
+            </a>
+          {% endwith %}
+        {% endfor %}
+        <div class="hero__ring" aria-hidden="true"></div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% if spotlight_categories %}
+<section class="section">
+  <div class="container">
+    <div class="section__head section__head--center">
+      <p class="eyebrow">Shop by category</p>
+      <h2 class="section__title">Find your everyday favourites</h2>
+    </div>
+    <ul class="bubbles">
+      {% for cat in spotlight_categories %}
+        <li>
+          <a class="bubble" href="{{ cat.get_absolute_url }}">
+            <span class="bubble__img">{% with cover=cat.cover_image %}{% if cover %}<img src="{{ cover.url }}" alt="" loading="lazy">{% endif %}{% endwith %}</span>
+            <span class="bubble__label">{{ cat.name }}</span>
+          </a>
+        </li>
+      {% endfor %}
+      {% if men %}
+        <li>
+          <a class="bubble" href="{{ men.get_absolute_url }}">
+            <span class="bubble__img">{% with cover=men.cover_image %}{% if cover %}<img src="{{ cover.url }}" alt="" loading="lazy">{% endif %}{% endwith %}</span>
+            <span class="bubble__label">Men</span>
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+{% if best_sellers %}
+<section class="section section--tint">
+  <div class="container">
+    <div class="section__head">
+      <div>
+        <p class="eyebrow">Loved by you</p>
+        <h2 class="section__title">Best sellers</h2>
+      </div>
+      <a class="link-arrow" href="{% url 'store:shop' %}">Shop all</a>
+    </div>
+    <div class="grid grid--products">
+      {% for product in best_sellers %}{% include "store/partials/product_card.html" with hide_bestseller_badge=True %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if departments %}
+<section class="section">
+  <div class="container dept-tiles">
+    {% for dept in departments %}
+      <a class="dept-tile" href="{{ dept.get_absolute_url }}">
+        {% with cover=dept.cover_image %}{% if cover %}<img src="{{ cover.url }}" alt="" loading="lazy">{% endif %}{% endwith %}
+        <span class="dept-tile__label">
+          <span class="dept-tile__name">{{ dept.name }}</span>
+          <span class="dept-tile__cta">Discover the collection</span>
+        </span>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if sportswear %}
+<section class="editorial">
+  <div class="container editorial__grid">
+    <div class="editorial__copy">
+      <p class="eyebrow eyebrow--light">The sportswear edit</p>
+      <h2 class="editorial__title">Move in comfort,<br><em>look effortless.</em></h2>
+      <p>Sculpting leggings, breathable tops and matching sets made for training days and lazy Sundays alike.</p>
+      <div class="editorial__links">
+        {% for leaf in sportswear.children.all %}<a href="{{ leaf.get_absolute_url }}">{{ leaf.name }}</a>{% endfor %}
+      </div>
+      <a class="btn btn--light" href="{{ sportswear.get_absolute_url }}">Shop sportswear</a>
+    </div>
+    <div class="editorial__visual">
+      {% with cover=sportswear.cover_image %}{% if cover %}<img src="{{ cover.url }}" alt="" loading="lazy">{% endif %}{% endwith %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if new_arrivals %}
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <div>
+        <p class="eyebrow">Just landed</p>
+        <h2 class="section__title">New in</h2>
+      </div>
+      <a class="link-arrow" href="{% url 'store:new_in' %}">See everything new</a>
+    </div>
+    <div class="rail" data-rail>
+      {% for product in new_arrivals %}{% include "store/partials/product_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if sale_products %}
+<section class="section section--tint">
+  <div class="container">
+    <div class="section__head">
+      <div>
+        <p class="eyebrow">Softer prices</p>
+        <h2 class="section__title">On sale now</h2>
+      </div>
+      <a class="link-arrow" href="{% url 'store:sale' %}">Shop the sale</a>
+    </div>
+    <div class="grid grid--products">
+      {% for product in sale_products %}{% include "store/partials/product_card.html" %}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="container">
+    <div class="section__head section__head--center">
+      <p class="eyebrow">Simple &amp; secure</p>
+      <h2 class="section__title">How ordering works</h2>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="step__num">1</span>
+        <h3>Pick your pieces</h3>
+        <p>Choose your size and color and add your favourites to the bag.</p>
+      </li>
+      <li class="step">
+        <span class="step__num">2</span>
+        <h3>Place your order</h3>
+        <p>Just your name, phone and address — no account and no card needed.</p>
+      </li>
+      <li class="step">
+        <span class="step__num">3</span>
+        <h3>Pay on delivery</h3>
+        <p>We call to confirm, then deliver in {{ store.delivery_time }}. Pay cash at your door.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+{% endblock %}
