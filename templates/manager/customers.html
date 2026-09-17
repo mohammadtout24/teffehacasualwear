@@ -1,0 +1,50 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}Customers{% endblock %}
+{% block heading %}Customers{% endblock %}
+
+{% block content %}
+<p class="m-lead m-muted">Customers who created an account. People who order as guests only appear in <a class="m-link" href="{% url 'manager:orders' %}">Orders</a>.</p>
+
+<section class="m-card m-card--flush">
+  <form class="m-toolbar m-card__toolbar" method="get" role="search">
+    <div class="m-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input type="search" name="q" value="{{ query }}" placeholder="Search name, email or phone" aria-label="Search customers">
+    </div>
+    <button class="m-btn m-btn--outline m-btn--sm" type="submit">Search</button>
+    {% if query %}<a class="m-btn m-btn--ghost m-btn--sm" href="{% url 'manager:customers' %}">Clear</a>{% endif %}
+  </form>
+
+  {% if page_obj.object_list %}
+    <div class="m-table-wrap">
+      <table class="m-table m-table--cards">
+        <thead><tr><th>Customer</th><th class="num">Orders</th><th class="num">Spent</th><th>Last order</th><th>Joined</th></tr></thead>
+        <tbody>
+          {% for customer in page_obj %}
+            <tr class="m-clickable" data-href="{% url 'manager:customer' customer.pk %}">
+              <td class="m-grow">
+                <div class="m-cell-main">
+                  <a href="{% url 'manager:customer' customer.pk %}"><strong>{{ customer.get_full_name|default:customer.email }}</strong></a>
+                  <span class="m-muted m-small">{{ customer.email }}</span>
+                </div>
+              </td>
+              <td class="num">{{ customer.order_count }}</td>
+              <td class="num">{% money customer.spent %}</td>
+              <td class="m-hide-sm">{% if customer.last_order %}{{ customer.last_order|date:"j M Y" }}{% else %}<span class="m-muted">—</span>{% endif %}</td>
+              <td class="m-hide-sm">{{ customer.date_joined|date:"j M Y" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "manager/partials/pagination.html" %}
+  {% else %}
+    <div class="m-empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/></svg>
+      <h3>{% if query %}No customers match “{{ query }}”{% else %}No customer accounts yet{% endif %}</h3>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

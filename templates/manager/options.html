@@ -1,0 +1,84 @@
+{% extends "manager/base.html" %}
+
+{% block title %}Sizes & colors{% endblock %}
+{% block heading %}Sizes &amp; colors{% endblock %}
+
+{% block content %}
+<p class="m-lead m-muted">The size and color options you can tick when adding a product. You can also add new ones straight from the product form.</p>
+
+<div class="m-grid-even">
+  <section class="m-card" id="sizes">
+    <h2 class="m-card__title">Sizes</h2>
+    <p class="m-card__sub">Sizes show in this order on product pages (lowest position first).</p>
+    <ul class="m-options m-mt">
+      {% for size in sizes %}
+        <li class="m-option-row">
+          <form method="post" class="m-option-edit">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_size">
+            <input type="hidden" name="pk" value="{{ size.pk }}">
+            <input type="text" name="name" value="{{ size.name }}" maxlength="20" aria-label="Size name" required>
+            <input type="number" name="sort_order" value="{{ size.sort_order }}" class="m-pos" aria-label="Position" min="0">
+            <button class="m-btn m-btn--ghost m-btn--sm" type="submit">Save</button>
+          </form>
+          <span class="m-count">{{ size.product_count }} product{{ size.product_count|pluralize }}</span>
+          <form method="post" data-confirm="Delete size {{ size.name }}?{% if size.product_count %} It will be removed from {{ size.product_count }} product{{ size.product_count|pluralize }}.{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_size">
+            <input type="hidden" name="pk" value="{{ size.pk }}">
+            <button class="m-icon-btn m-icon-btn--sm" type="submit" aria-label="Delete size {{ size.name }}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+            </button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="m-muted">No sizes yet.</li>
+      {% endfor %}
+    </ul>
+    <form method="post" class="m-add-row">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_size">
+      <input type="text" name="name" maxlength="20" placeholder="New size, e.g. 3XL" aria-label="New size" required>
+      <input type="hidden" name="sort_order" value="">
+      <button class="m-btn m-btn--primary m-btn--sm" type="submit">Add size</button>
+    </form>
+  </section>
+
+  <section class="m-card" id="colors">
+    <h2 class="m-card__title">Colors</h2>
+    <p class="m-card__sub">The shade is used for the little color circles customers click.</p>
+    <ul class="m-options m-mt">
+      {% for color in colors %}
+        <li class="m-option-row">
+          <form method="post" class="m-option-edit">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_color">
+            <input type="hidden" name="pk" value="{{ color.pk }}">
+            <input type="color" name="hex_code" value="{{ color.hex_code|lower }}" aria-label="Shade of {{ color.name }}">
+            <input type="text" name="name" value="{{ color.name }}" maxlength="40" aria-label="Color name" required>
+            <button class="m-btn m-btn--ghost m-btn--sm" type="submit">Save</button>
+          </form>
+          <span class="m-count">{{ color.product_count }} product{{ color.product_count|pluralize }}</span>
+          <form method="post" data-confirm="Delete the color {{ color.name }}?{% if color.product_count %} It will be removed from {{ color.product_count }} product{{ color.product_count|pluralize }}.{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_color">
+            <input type="hidden" name="pk" value="{{ color.pk }}">
+            <button class="m-icon-btn m-icon-btn--sm" type="submit" aria-label="Delete color {{ color.name }}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+            </button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="m-muted">No colors yet.</li>
+      {% endfor %}
+    </ul>
+    <form method="post" class="m-add-row">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_color">
+      <input type="color" name="hex_code" value="#7a0f1f" aria-label="Shade">
+      <input type="text" name="name" maxlength="40" placeholder="New color, e.g. Olive" aria-label="New color name" required>
+      <button class="m-btn m-btn--primary m-btn--sm" type="submit">Add color</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

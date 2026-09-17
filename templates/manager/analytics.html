@@ -1,0 +1,301 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}Analytics{% endblock %}
+{% block heading %}Analytics{% endblock %}
+
+{% block actions %}
+  <a class="m-btn m-btn--outline" href="{% url 'manager:analytics_export' %}?period={{ period.key }}&amp;from={{ period.start|date:'Y-m-d' }}&amp;to={{ period.end|date:'Y-m-d' }}&amp;channel={{ channel }}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg>Download orders (CSV)
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="a-root" data-analytics>
+
+  <form class="a-filters" method="get" data-analytics-filters>
+    <label class="a-filter">
+      <span class="m-label">Period</span>
+      <select name="period" data-period>
+        {% for key, label in presets %}<option value="{{ key }}" {% if period.key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="a-filter a-custom" data-custom-range {% if period.key != 'custom' %}hidden{% endif %}>
+      <label><span class="m-label">From</span><input type="date" name="from" value="{{ period.start|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"></label>
+      <label><span class="m-label">To</span><input type="date" name="to" value="{{ period.end|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"></label>
+      <button class="m-btn m-btn--primary m-btn--sm" type="submit">Apply</button>
+    </div>
+    <label class="a-filter">
+      <span class="m-label">Sales</span>
+      <select name="channel" data-channel>
+        {% for key, label in channels %}<option value="{{ key }}" {% if channel == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <noscript><button class="m-btn m-btn--outline m-btn--sm" type="submit">Show</button></noscript>
+    <p class="a-range">
+      {{ period.start|date:"j M Y" }} – {{ period.end|date:"j M Y" }}
+      <span>· compared with {{ previous.start|date:"j M" }} – {{ previous.end|date:"j M Y" }}</span>
+    </p>
+  </form>
+
+  <section class="a-kpis" aria-label="Key numbers">
+    {% for kpi in r.kpis %}
+      <div class="m-kpi">
+        <span class="m-kpi__label">{{ kpi.label }}</span>
+        <span class="m-kpi__value">{{ kpi.value }}</span>
+        <span class="a-delta a-delta--{{ kpi.delta.tone }}">{% if kpi.delta.arrow %}<span aria-hidden="true">{{ kpi.delta.arrow }} </span>{% endif %}{{ kpi.delta.text }}</span>
+        {% if kpi.note %}<span class="m-kpi__note">{{ kpi.note }}</span>{% endif %}
+      </div>
+    {% endfor %}
+  </section>
+
+  {% if not r.has_sales %}
+    <section class="m-card">
+      <div class="m-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <h3>No sales in this period</h3>
+        <p>Pick a longer period, or come back once orders and in-store sales come in.</p>
+      </div>
+    </section>
+  {% else %}
+
+  <section class="m-card">
+    <div class="a-card__head">
+      <div>
+        <h2 class="m-card__title">Sales over time</h2>
+        <p class="m-card__sub">{{ r.charts.subtitle }} · cancelled orders not included</p>
+      </div>
+      <div class="a-toolbar">
+        {% if r.series|length > 1 %}
+          <ul class="a-legend" aria-label="Legend">
+            {% for key, label in r.series %}<li><span class="a-key a-key--{{ key }}" aria-hidden="true"></span>{{ label }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        <div class="a-switch" role="group" aria-label="Chart shows">
+          {% for metric in r.charts.metrics %}
+            <button type="button" data-metric="{{ metric.key }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}"{% if forloop.first %} class="is-active"{% endif %}>{{ metric.label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% for metric in r.charts.metrics %}
+      <div class="a-chart" data-chart="{{ metric.key }}" {% if not forloop.first %}hidden{% endif %}>
+        <div class="a-plot">
+          {% for tick in metric.chart.ticks %}<div class="a-gridline" style="bottom: {{ tick.bottom }}%"><span>{{ tick.label }}</span></div>{% endfor %}
+          <div class="a-cols">
+            {% for col in metric.chart.columns %}
+              <div class="a-col" tabindex="0" data-tip="{{ col.tip }}" aria-label="{{ col.aria }}">
+                <div class="a-col__stack" style="height: {{ col.height }}%">
+                  {% for seg in col.segments %}<span class="a-seg a-seg--{{ seg.key }}" style="flex-grow: {{ seg.weight }}"></span>{% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="a-xaxis" aria-hidden="true">{% for col in metric.chart.columns %}<span>{{ col.label }}</span>{% endfor %}</div>
+      </div>
+    {% endfor %}
+
+    <details class="a-table">
+      <summary>View as a table</summary>
+      <div class="m-table-wrap">
+        <table class="m-table">
+          <thead><tr>{% for cell in r.charts.table_head %}<th{% if not forloop.first %} class="num"{% endif %}>{{ cell }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for row in r.charts.table %}
+              <tr><td>{{ row.title }}</td>{% for cell in row.cells %}<td class="num">{{ cell }}</td>{% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  {% if r.split or r.statuses %}
+    <div class="a-grid-2">
+      {% if r.split %}
+        <section class="m-card">
+          <h2 class="m-card__title">Online vs in store</h2>
+          <p class="m-card__sub">Share of revenue</p>
+          {% if r.split.has_revenue %}
+            <div class="a-split" aria-hidden="true">
+              {% for part in r.split.parts %}{% if part.has_revenue %}<span class="a-seg a-seg--{{ part.key }}" style="flex-grow: {{ part.weight }}"></span>{% endif %}{% endfor %}
+            </div>
+          {% endif %}
+          <ul class="a-split-list">
+            {% for part in r.split.parts %}
+              <li>
+                <span class="a-key a-key--{{ part.key }}" aria-hidden="true"></span>
+                <span>{{ part.label }}</span>
+                <strong>{{ part.revenue }}</strong>
+                <span class="a-split-list__meta">{{ part.share }}% of revenue · {{ part.orders }} order{{ part.orders|pluralize }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if r.statuses %}
+        <section class="m-card">
+          <h2 class="m-card__title">Online orders by status</h2>
+          <p class="m-card__sub">Every online order placed in this period, including cancelled</p>
+          {% include "manager/partials/bars.html" with rows=r.statuses %}
+        </section>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <section class="m-card m-card--flush">
+    <div class="m-card__head">
+      <div>
+        <h2 class="m-card__title">Top products</h2>
+        <p class="m-card__sub">By revenue from item prices, before promo discounts</p>
+      </div>
+      <a class="m-link m-small" href="{% url 'manager:products' %}">All products →</a>
+    </div>
+    <div class="m-table-wrap">
+      <table class="m-table m-table--cards">
+        <thead><tr><th class="num">#</th><th colspan="2">Product</th><th class="num">Units</th><th class="num">Revenue</th><th>Share of item sales</th></tr></thead>
+        <tbody>
+          {% for product in r.top_products %}
+            <tr>
+              <td class="num m-muted m-hide-sm">{{ forloop.counter }}</td>
+              <td class="m-thumb-cell">
+                {% if product.image %}<img class="m-thumb m-thumb--sm" src="{{ product.image }}" alt="" loading="lazy">{% else %}<span class="m-thumb m-thumb--sm m-thumb--empty"></span>{% endif %}
+              </td>
+              <td class="m-grow">
+                <div class="m-cell-main">
+                  {% if product.product_id %}<a href="{% url 'manager:product_edit' product.product_id %}"><strong>{{ product.name }}</strong></a>{% else %}<strong>{{ product.name }}</strong>{% endif %}
+                  {% if product.code %}<span class="m-muted m-small">ID {{ product.code }}</span>{% endif %}
+                </div>
+              </td>
+              <td class="num">{{ product.units }}</td>
+              <td class="num"><strong>{{ product.revenue_display }}</strong></td>
+              <td class="a-share-cell">
+                <span class="a-bars__area"><span class="a-bar" style="width: {{ product.width }}%"></span><span class="a-bars__value">{{ product.share }}%</span></span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="a-grid-3">
+    <section class="m-card">
+      <h2 class="m-card__title">Sales by category</h2>
+      <p class="m-card__sub">Revenue from item prices</p>
+      {% include "manager/partials/bars.html" with rows=r.categories %}
+    </section>
+    <section class="m-card">
+      <h2 class="m-card__title">Sizes sold</h2>
+      <p class="m-card__sub">Units, in size order</p>
+      {% include "manager/partials/bars.html" with rows=r.sizes %}
+    </section>
+    <section class="m-card">
+      <h2 class="m-card__title">Colors sold</h2>
+      <p class="m-card__sub">Units, most popular first</p>
+      {% if r.colors %}
+        {% include "manager/partials/bars.html" with rows=r.colors %}
+      {% else %}
+        <p class="m-muted m-mt">No colors were chosen on these items.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="a-grid-2 a-grid-wide">
+    <section class="m-card">
+      <h2 class="m-card__title">Busiest days &amp; times</h2>
+      <p class="m-card__sub">Orders and in-store sales by weekday and hour{% if r.heatmap.busiest %} · busiest: <strong>{{ r.heatmap.busiest }}</strong>{% endif %}</p>
+      <div class="a-heat" role="img" aria-label="Orders by weekday and hour. Busiest: {{ r.heatmap.busiest }}. Open the table below for every value.">
+        <span></span>
+        {% for label in r.heatmap.hours %}<span class="a-heat__hour">{{ label }}</span>{% endfor %}
+        {% for row in r.heatmap.rows %}
+          <span class="a-heat__day">{{ row.day }}</span>
+          {% for cell in row.cells %}<span class="a-heat__cell a-heat--{{ cell.level }}" data-tip="{{ cell.tip }}"></span>{% endfor %}
+        {% endfor %}
+      </div>
+      <div class="a-heat-legend" aria-hidden="true">
+        <span>Fewer</span>
+        <span class="a-heat__cell a-heat--0"></span>
+        {% for level in r.heatmap.levels %}<span class="a-heat__cell a-heat--{{ level }}"></span>{% endfor %}
+        <span>More</span>
+      </div>
+      <details class="a-table">
+        <summary>View as a table</summary>
+        <div class="m-table-wrap">
+          <table class="m-table a-heat-table">
+            <thead><tr><th>Day</th>{% for hour in r.heatmap.hour_names %}<th class="num">{{ hour }}</th>{% endfor %}</tr></thead>
+            <tbody>
+              {% for row in r.heatmap.rows %}
+                <tr><td>{{ row.name }}</td>{% for cell in row.cells %}<td class="num{% if not cell.count %} m-muted{% endif %}">{{ cell.count }}</td>{% endfor %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    {% if r.cities is not None %}
+      <section class="m-card">
+        <h2 class="m-card__title">Top cities</h2>
+        <p class="m-card__sub">Online orders by delivery city</p>
+        {% if r.cities %}
+          {% include "manager/partials/bars.html" with rows=r.cities %}
+        {% else %}
+          <p class="m-muted m-mt">No online orders in this period.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
+
+  <div class="a-grid-2">
+    <section class="m-card m-card--flush">
+      <div class="m-card__head">
+        <div>
+          <h2 class="m-card__title">Promo codes</h2>
+          <p class="m-card__sub">Orders and sales that used a code</p>
+        </div>
+        <a class="m-link m-small" href="{% url 'manager:promos' %}">Manage codes →</a>
+      </div>
+      {% if r.promos %}
+        <div class="m-table-wrap">
+          <table class="m-table">
+            <thead><tr><th>Code</th><th class="num">Uses</th><th class="num">Discount given</th><th class="num">Revenue</th></tr></thead>
+            <tbody>
+              {% for promo in r.promos %}
+                <tr>
+                  <td><code class="m-code">{{ promo.code }}</code></td>
+                  <td class="num">{{ promo.orders }}</td>
+                  <td class="num">{{ promo.discount_display }}</td>
+                  <td class="num"><strong>{{ promo.revenue_display }}</strong></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="m-muted a-pad">No promo codes were used in this period.</p>
+      {% endif %}
+    </section>
+
+    <section class="m-card">
+      <h2 class="m-card__title">Customers</h2>
+      <p class="m-card__sub">Buyers are matched by phone number</p>
+      <dl class="a-stats">
+        <div><dt>Buyers</dt><dd>{{ r.customers.buyers }}</dd><p>Different phone numbers that bought</p></div>
+        <div><dt>Repeat buyers</dt><dd>{{ r.customers.repeat }}</dd><p>Of those, bought more than once overall</p></div>
+        <div><dt>New customer accounts</dt><dd>{{ r.customers.new_accounts }}</dd><p>Signed up in this period</p></div>
+        {% if r.customers.show_accounts %}
+          <div><dt>Online orders from accounts</dt><dd>{{ r.customers.account_share }}%</dd><p>{{ r.customers.guest_share }}% checked out as guests</p></div>
+        {% endif %}
+      </dl>
+    </section>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{% asset 'js/analytics.js' %}" defer></script>{% endblock %}

@@ -1,0 +1,18 @@
+<div class="m-field{% if full %} m-field--full{% endif %}{% if field.errors %} has-error{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  <div class="m-image-field">
+    {% if field.value and field.value.url %}
+      <img src="{{ field.value.url }}" alt="">
+    {% else %}
+      <span class="m-image-field__empty">No image</span>
+    {% endif %}
+    <div class="m-image-field__controls">
+      <input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" accept="image/*">
+      {% if field.value and field.value.url %}
+        <label class="m-inline-check"><input type="checkbox" name="{{ field.html_name }}-clear"> Remove current image</label>
+      {% endif %}
+    </div>
+  </div>
+  {% if field.help_text %}<p class="m-help">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}<p class="m-error">{{ error }}</p>{% endfor %}
+</div>

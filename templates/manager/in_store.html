@@ -1,0 +1,87 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}In-store sales{% endblock %}
+{% block heading %}In-store sales{% endblock %}
+
+{% block actions %}
+  <a class="m-btn m-btn--primary" href="{% url 'manager:in_store_new' %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Record a sale
+  </a>
+{% endblock %}
+
+{% block content %}
+<p class="m-lead m-muted">Sales made in your shop. Record each one with the Product IDs — they count in your dashboard sales and best sellers.</p>
+
+<section class="m-kpis m-kpis--three">
+  <div class="m-kpi">
+    <span class="m-kpi__label">In-store sales today</span>
+    <span class="m-kpi__value">{% money today.total %}</span>
+    <span class="m-kpi__note">{{ today.count }} sale{{ today.count|pluralize }}</span>
+  </div>
+  <div class="m-kpi">
+    <span class="m-kpi__label">In-store sales this month</span>
+    <span class="m-kpi__value">{% money month.total %}</span>
+    <span class="m-kpi__note">{{ month.count }} sale{{ month.count|pluralize }}</span>
+  </div>
+  <a class="m-kpi m-kpi--accent" href="{% url 'manager:in_store_new' %}">
+    <span class="m-kpi__label">Customer at the counter?</span>
+    <span class="m-kpi__value m-kpi__value--text">Record a sale →</span>
+    <span class="m-kpi__note">Just type the Product ID</span>
+  </a>
+</section>
+
+<section class="m-card m-card--flush">
+  <form class="m-toolbar m-card__toolbar" method="get" role="search">
+    <div class="m-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input type="search" name="q" value="{{ query }}" placeholder="Search sale number, product name or ID" aria-label="Search in-store sales">
+    </div>
+    <button class="m-btn m-btn--outline m-btn--sm" type="submit">Search</button>
+    {% if query %}<a class="m-btn m-btn--ghost m-btn--sm" href="{% url 'manager:in_store' %}">Clear</a>{% endif %}
+  </form>
+
+  {% if page_obj.object_list %}
+    <div class="m-table-wrap">
+      <table class="m-table m-table--cards">
+        <thead><tr><th>Sale</th><th colspan="2">Items</th><th class="num">Total</th><th>Recorded by</th></tr></thead>
+        <tbody>
+          {% for sale in page_obj %}
+            {% with items=sale.items.all %}
+              <tr class="m-clickable" data-href="{% url 'manager:order' sale.number %}">
+                <td>
+                  <div class="m-cell-main">
+                    <a href="{% url 'manager:order' sale.number %}"><strong>{{ sale.number }}</strong></a>
+                    <span class="m-muted m-small">{{ sale.created_at|date:"j M Y, H:i" }}</span>
+                  </div>
+                </td>
+                <td class="m-thumb-cell">
+                  {% with img=items.0.image %}{% if img %}<img class="m-thumb" src="{{ img.image.url }}" alt="" loading="lazy">{% else %}<span class="m-thumb m-thumb--empty"></span>{% endif %}{% endwith %}
+                </td>
+                <td class="m-grow m-small">
+                  {% for item in items|slice:":2" %}{{ item.quantity }} × {{ item.product_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                  {% if items|length > 2 %}<span class="m-muted">+{{ items|length|add:"-2" }} more</span>{% endif %}
+                </td>
+                <td class="num"><strong>{% money sale.total sale.currency %}</strong></td>
+                <td class="m-hide-sm m-small">{% if sale.recorded_by %}{{ sale.recorded_by.get_full_name|default:sale.recorded_by.get_username }}{% else %}<span class="m-muted">—</span>{% endif %}</td>
+              </tr>
+            {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "manager/partials/pagination.html" %}
+  {% else %}
+    <div class="m-empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9 5 4h14l1.5 5M4.5 9v11h15V9M3.5 9h17M9.5 20v-6h5v6"/></svg>
+      {% if query %}
+        <h3>No sales match “{{ query }}”</h3>
+      {% else %}
+        <h3>No in-store sales yet</h3>
+        <p>When a customer buys something in your shop, record it here with the Product IDs.</p>
+        <a class="m-btn m-btn--primary m-mt" href="{% url 'manager:in_store_new' %}">Record a sale</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

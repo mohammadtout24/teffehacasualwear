@@ -1,0 +1,51 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}Promo codes{% endblock %}
+{% block heading %}Promo codes{% endblock %}
+
+{% block actions %}
+  <a class="m-btn m-btn--primary" href="{% url 'manager:promo_add' %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New promo code
+  </a>
+{% endblock %}
+
+{% block content %}
+<p class="m-lead m-muted">Customers type a code at checkout to get a discount or free delivery.</p>
+
+<section class="m-card m-card--flush">
+  {% if promos %}
+    <div class="m-table-wrap">
+      <table class="m-table m-table--cards">
+        <thead><tr><th>Code</th><th>Gives</th><th>Minimum order</th><th class="num">Used</th><th>Valid</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+          {% for promo in promos %}
+            {% url 'manager:promo_toggle' promo.pk as toggle_url %}
+            <tr class="m-clickable" data-href="{% url 'manager:promo_edit' promo.pk %}">
+              <td class="m-grow"><a href="{% url 'manager:promo_edit' promo.pk %}"><code class="m-code">{{ promo.code }}</code></a></td>
+              <td>{% promo_label promo %}</td>
+              <td class="m-hide-sm">{% if promo.min_subtotal %}{% money promo.min_subtotal %}{% else %}<span class="m-muted">None</span>{% endif %}</td>
+              <td class="num">{{ promo.times_used }}{% if promo.max_uses %} / {{ promo.max_uses }}{% endif %}</td>
+              <td class="m-hide-sm m-small">
+                {% if promo.ends_at and promo.ends_at < now %}<span class="m-badge m-badge--cancelled">Expired</span>
+                {% elif promo.starts_at and promo.starts_at > now %}Starts {{ promo.starts_at|date:"j M" }}
+                {% elif promo.ends_at %}Until {{ promo.ends_at|date:"j M Y" }}
+                {% else %}<span class="m-muted">No end date</span>{% endif %}
+              </td>
+              <td>{% include "manager/partials/toggle.html" with url=toggle_url field="is_active" value=promo.is_active label="Active" name=promo.code %}</td>
+              <td class="num m-hide-sm"><a class="m-btn m-btn--outline m-btn--sm" href="{% url 'manager:promo_edit' promo.pk %}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="m-empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9-9-9Z"/><circle cx="8" cy="8" r="1.5"/></svg>
+      <h3>No promo codes yet</h3>
+      <p>Create one for a sale, a welcome offer or free delivery.</p>
+      <a class="m-btn m-btn--primary m-mt" href="{% url 'manager:promo_add' %}">New promo code</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

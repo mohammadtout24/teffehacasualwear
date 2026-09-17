@@ -9,9 +9,10 @@ Address: {{ order.address }}, {{ order.city }}{% if order.notes %}
 Notes: {{ order.notes }}{% endif %}
 
 ITEMS
-{% for item in items %}- {{ item.quantity }} x {{ item.product_name }}{% if item.color %} / {{ item.color }}{% endif %}{% if item.size %} / Size {{ item.size }}{% endif %} — {% money item.line_total order.currency %}
+{% for item in items %}- {{ item.quantity }} x {{ item.product_name }}{% if item.product_code %} [ID {{ item.product_code }}]{% endif %}{% if item.color %} / {{ item.color }}{% endif %}{% if item.size %} / Size {{ item.size }}{% endif %} — {% money item.line_total order.currency %}
 {% endfor %}
-Subtotal: {% money order.subtotal order.currency %}
+Subtotal: {% money order.subtotal order.currency %}{% if order.promo_code %}
+Promo code {{ order.promo_code }}: {% if order.discount %}-{% money order.discount order.currency %}{% else %}free delivery{% endif %}{% endif %}
 Delivery: {% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}
 TOTAL TO COLLECT: {% money order.total order.currency %}
 {% if admin_url %}

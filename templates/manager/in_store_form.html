@@ -1,0 +1,103 @@
+{% extends "manager/base.html" %}
+
+{% block title %}Record a sale{% endblock %}
+{% block breadcrumb %}<nav class="m-crumbs"><a href="{% url 'manager:in_store' %}">In-store sales</a><span aria-hidden="true">/</span><span>New sale</span></nav>{% endblock %}
+{% block heading %}Record an in-store sale{% endblock %}
+
+{% block content %}
+<form method="post" novalidate data-sale-form
+      data-lookup-url="{% url 'manager:product_lookup' %}"
+      data-promo-url="{% url 'manager:in_store_promo_check' %}"
+      data-currency="{{ store.currency }}">
+  {% csrf_token %}
+  {% if item_errors or promo_error %}
+    <div class="m-alert" role="alert">
+      <strong>Please fix these before saving:</strong>
+      <ul class="m-alert__list">
+        {% for error in item_errors %}<li>{{ error }}</li>{% endfor %}
+        {% if promo_error %}<li>Promo code: {{ promo_error }}</li>{% endif %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <section class="m-card">
+    <h2 class="m-card__title">What are they buying?</h2>
+    <p class="m-card__sub">Type the Product ID and press Enter — or start typing the name and pick it from the list. The product’s photo appears so you can check it’s the right one.</p>
+    <div class="m-sale-rows m-mt" data-sale-rows></div>
+
+    <div class="m-sale-foot">
+      <button type="button" class="m-btn m-btn--outline" data-add-row>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add another item
+      </button>
+
+      <div class="m-sale-summary">
+        <div class="m-sale-promo">
+          <label class="m-label" for="promo-code">Promo code <span class="m-muted">(optional)</span></label>
+          <div class="m-sale-promo__row">
+            <input type="text" id="promo-code" name="promo_code" value="{{ promo_code }}" maxlength="30"
+                   autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. WELCOME10" data-promo-input>
+            <button type="button" class="m-btn m-btn--outline m-btn--sm" data-promo-apply>Apply</button>
+          </div>
+          <p class="m-sale-promo__msg{% if promo_error %} is-error{% endif %}" data-promo-msg aria-live="polite">{{ promo_error }}</p>
+        </div>
+
+        <dl class="m-sale-totals">
+          <div data-subtotal-row hidden><dt>Subtotal</dt><dd data-sale-subtotal>{{ store.currency }}0</dd></div>
+          <div class="is-discount" data-discount-row hidden><dt>Discount <span data-discount-code></span></dt><dd data-sale-discount>−{{ store.currency }}0</dd></div>
+          <div class="is-total"><dt>Total</dt><dd data-sale-total>{{ store.currency }}0</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <div class="m-savebar">
+    <a class="m-btn m-btn--ghost" href="{% url 'manager:in_store' %}">Cancel</a>
+    <button class="m-btn m-btn--primary" type="submit">Save sale</button>
+  </div>
+</form>
+
+<datalist id="sale-products">
+  {% for product in products %}<option value="{{ product.display_id }}">{{ product.name }}</option>{% endfor %}
+</datalist>
+{{ rows|json_script:"sale-rows-data" }}
+
+<template id="sale-row">
+  <div class="m-sale-row" data-row>
+    <span class="m-sale-row__num" data-row-num></span>
+    <label class="m-field m-sale-row__id">
+      <span class="m-label">Product ID</span>
+      <input type="text" name="item_product" list="sale-products" autocomplete="off" spellcheck="false" placeholder="e.g. TW-1042">
+    </label>
+    <div class="m-sale-row__info" aria-live="polite">
+      <span class="m-sale-row__photo">
+        <img alt="" hidden data-product-img>
+        <svg viewBox="0 0 24 24" aria-hidden="true" data-photo-icon><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+      </span>
+      <span class="m-sale-row__name" data-product-text><span class="m-small">Enter an ID or pick a product</span></span>
+    </div>
+    <label class="m-field m-sale-row__size">
+      <span class="m-label">Size</span>
+      <select name="item_size"><option value="">—</option></select>
+    </label>
+    <label class="m-field m-sale-row__color">
+      <span class="m-label">Color</span>
+      <select name="item_color"><option value="">—</option></select>
+    </label>
+    <label class="m-field m-sale-row__qty">
+      <span class="m-label">Qty</span>
+      <input type="number" name="item_qty" min="1" max="999" value="1" inputmode="numeric">
+    </label>
+    <label class="m-field m-sale-row__price">
+      <span class="m-label">Price each</span>
+      <span class="m-affix"><span>{{ store.currency }}</span><input type="number" name="item_price" step="0.01" min="0" inputmode="decimal"></span>
+    </label>
+    <div class="m-sale-row__total">
+      <span class="m-label">Total</span>
+      <strong data-line-total>{{ store.currency }}0</strong>
+    </div>
+    <button type="button" class="m-icon-btn m-icon-btn--sm m-sale-row__remove" data-remove-row aria-label="Remove this item">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+    </button>
+  </div>
+</template>
+{% endblock %}

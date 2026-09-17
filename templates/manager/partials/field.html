@@ -1,0 +1,10 @@
+<div class="m-field{% if full %} m-field--full{% endif %}{% if field.errors %} has-error{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="m-req" aria-hidden="true">*</span>{% endif %}</label>
+  {% if prefix %}
+    <div class="m-affix"><span>{{ prefix }}</span>{{ field }}</div>
+  {% else %}
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}<p class="m-help">{{ field.help_text }}</p>{% endif %}
+  {% for error in field.errors %}<p class="m-error">{{ error }}</p>{% endfor %}
+</div>

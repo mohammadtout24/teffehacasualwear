@@ -15,32 +15,17 @@
     <p class="success__pay">Please have <strong>{% money order.total order.currency %}</strong> ready in cash when your order arrives.</p>
   </div>
 
-  <div class="summary">
-    <h2 class="summary__title">Order details</h2>
-    <ul class="mini-cart mini-cart--summary">
-      {% for item in order.items.all %}
-        <li class="mini-cart__item">
-          <span class="mini-cart__img">
-            {% with img=item.image %}{% if img %}<img src="{{ img.image.url }}" alt="">{% endif %}{% endwith %}
-            <span class="mini-cart__qty">{{ item.quantity }}</span>
-          </span>
-          <div class="mini-cart__info">
-            <span class="mini-cart__name">{{ item.product_name }}</span>
-            <span class="mini-cart__meta">{% if item.color %}{{ item.color }}{% endif %}{% if item.color and item.size %} · {% endif %}{% if item.size %}Size {{ item.size }}{% endif %}</span>
-          </div>
-          <span class="mini-cart__price">{% money item.line_total order.currency %}</span>
-        </li>
-      {% endfor %}
-    </ul>
-    <div class="summary-row"><span>Subtotal</span><span>{% money order.subtotal order.currency %}</span></div>
-    <div class="summary-row"><span>Delivery</span><span>{% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}</span></div>
-    <div class="summary-row summary-row--total"><span>Total (cash on delivery)</span><span>{% money order.total order.currency %}</span></div>
+  {% include "store/partials/order_summary.html" %}
 
-    <div class="success__address">
-      <h3>Delivering to</h3>
-      <p>{{ order.full_name }}<br>{{ order.address }}<br>{{ order.city }}<br>{{ order.phone }}</p>
+  {% if not user.is_authenticated %}
+    <div class="account-cta">
+      <div>
+        <h3>Save your details for next time</h3>
+        <p>Create an account and this order and your delivery address will be saved to it.</p>
+      </div>
+      <a class="btn btn--outline" href="{% url 'accounts:signup' %}">Create account</a>
     </div>
-  </div>
+  {% endif %}
 
   <div class="center">
     <a class="btn btn--primary" href="{% url 'store:home' %}">Continue shopping</a>

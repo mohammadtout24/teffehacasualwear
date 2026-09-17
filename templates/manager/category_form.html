@@ -1,0 +1,42 @@
+{% extends "manager/base.html" %}
+
+{% block title %}{% if category %}Edit {{ category.name }}{% else %}Add category{% endif %}{% endblock %}
+{% block breadcrumb %}<nav class="m-crumbs"><a href="{% url 'manager:categories' %}">Categories</a><span aria-hidden="true">/</span><span>{% if category %}Edit{% else %}New{% endif %}</span></nav>{% endblock %}
+{% block heading %}{% if category %}{{ category.name }}{% else %}Add a category{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate class="m-narrow">
+  {% csrf_token %}
+  <section class="m-card">
+    <div class="m-form-grid">
+      {% include "manager/partials/field.html" with field=form.name full=True %}
+      {% include "manager/partials/field.html" with field=form.parent full=True %}
+      {% include "manager/partials/field.html" with field=form.description full=True %}
+      {% include "manager/partials/image_field.html" with field=form.image full=True %}
+      {% include "manager/partials/field.html" with field=form.sort_order %}
+    </div>
+    <div class="m-mt">
+      {% include "manager/partials/switch_row.html" with field=form.is_active help="Turn off to hide it from the menus." %}
+    </div>
+  </section>
+
+  {% if category %}
+    <section class="m-card m-danger-zone m-mt-lg">
+      <h2 class="m-card__title">Delete this category</h2>
+      <p class="m-card__sub">Its products stay in your shop. Categories that contain sub-categories can’t be deleted.</p>
+      <button class="m-btn m-btn--danger m-btn--sm m-mt" type="submit" form="delete-category">Delete category</button>
+    </section>
+  {% endif %}
+
+  <div class="m-savebar">
+    <a class="m-btn m-btn--ghost" href="{% url 'manager:categories' %}">Cancel</a>
+    <button class="m-btn m-btn--primary" type="submit">Save category</button>
+  </div>
+</form>
+
+{% if category %}
+  <form id="delete-category" method="post" action="{% url 'manager:category_delete' category.pk %}" data-confirm="Delete the category “{{ category.name }}”?">
+    {% csrf_token %}
+  </form>
+{% endif %}
+{% endblock %}

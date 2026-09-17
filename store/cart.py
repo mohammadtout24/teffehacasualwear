@@ -1,8 +1,9 @@
 from decimal import Decimal
 
-from .models import Product, StoreSettings
+from .models import LOW_STOCK, Product, PromoCode, StoreSettings
 
 CART_SESSION_KEY = 'cart'
+PROMO_SESSION_KEY = 'promo_code'
 MAX_QUANTITY = 20
 
 
@@ -57,7 +58,9 @@ class Cart:
         products are dropped silently."""
         if self._lines is None:
             ids = {line['product_id'] for line in self.data.values()}
-            products = Product.objects.active().filter(pk__in=ids).prefetch_related('images__color')
+            products = Product.objects.active().filter(pk__in=ids).prefetch_related(
+                'images__color', 'variants__size', 'variants__color'
+            )
             by_id = {p.pk: p for p in products}
             lines = []
             for key, line in list(self.data.items()):
@@ -76,6 +79,12 @@ class Cart:
                     'unit_price': product.price,
                     'line_total': product.price * line['quantity'],
                 })
+                available = product.stock_for(line['size'], line['color']) if product.in_stock else 0
+                lines[-1].update(
+                    available=available,
+                    low=0 < available <= LOW_STOCK,
+                    short=line['quantity'] > available,
+                )
             self._lines = lines
         return self._lines
 
@@ -89,16 +98,44 @@ class Cart:
     def subtotal(self):
         return sum((line['line_total'] for line in self.lines), Decimal('0.00'))
 
+    def apply_promo(self, code):
+        self.session[PROMO_SESSION_KEY] = code.strip().upper()
+
+    def remove_promo(self):
+        self.session.pop(PROMO_SESSION_KEY, None)
+
     def totals(self, store=None):
+        """Subtotal, promo discount, delivery and total.
+
+        Free delivery is judged on the subtotal before any discount, so applying
+        a promo code can never make the total go up.
+        """
         store = store or StoreSettings.load()
         subtotal = self.subtotal
-        delivery = store.delivery_fee_for(subtotal)
+
+        code = self.session.get(PROMO_SESSION_KEY, '')
+        promo, promo_error = None, ''
+        if code:
+            promo = PromoCode.find(code)
+            promo_error = promo.problem(subtotal, store.currency) if promo else 'This promo code is not valid.'
+            if promo_error:
+                promo = None
+        discount = promo.discount_for(subtotal) if promo else Decimal('0.00')
+
+        if promo and promo.kind == PromoCode.Kind.FREE_DELIVERY:
+            delivery = Decimal('0.00')
+        else:
+            delivery = store.delivery_fee_for(subtotal)
         remaining = None
         if store.free_delivery_over is not None and delivery > 0:
             remaining = store.free_delivery_over - subtotal
         return {
             'subtotal': subtotal,
+            'promo': promo,
+            'promo_code': code,
+            'promo_error': promo_error,
+            'discount': discount,
             'delivery_fee': delivery,
-            'total': subtotal + delivery,
+            'total': subtotal - discount + delivery,
             'free_delivery_remaining': remaining,
         }

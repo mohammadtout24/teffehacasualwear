@@ -2,8 +2,15 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from .models import (
-    Category, Color, Order, OrderItem, Product, ProductImage, Size, StoreSettings,
+    Category, Color, Order, OrderItem, Product, ProductImage, ProductVariant, PromoCode, Size, StoreSettings,
 )
+
+
+class ProductVariantInline(admin.TabularInline):
+    model = ProductVariant
+    fields = ['size', 'color', 'quantity']
+    extra = 0
+    verbose_name_plural = 'stock (per size and color)'
 
 
 def thumb(image, size=56):
@@ -56,12 +63,12 @@ class ProductAdmin(admin.ModelAdmin):
     list_display_links = ['preview', 'name']
     list_editable = ['price', 'in_stock', 'is_featured', 'is_active']
     list_filter = ['is_active', 'in_stock', 'is_featured', 'is_sample', 'categories']
-    search_fields = ['name', 'sku', 'description']
+    search_fields = ['name', 'code', 'description']
     prepopulated_fields = {'slug': ['name']}
     filter_horizontal = ['categories', 'sizes', 'colors']
-    inlines = [ProductImageInline]
+    inlines = [ProductImageInline, ProductVariantInline]
     fieldsets = [
-        (None, {'fields': ['name', 'slug', 'sku', 'categories']}),
+        (None, {'fields': ['code', 'name', 'slug', 'categories']}),
         ('Pricing', {'fields': ['price', 'compare_at_price']}),
         ('Description', {'fields': ['description', 'details']}),
         ('Options', {'fields': ['sizes', 'colors']}),
@@ -109,22 +116,47 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['number', 'created_at', 'full_name', 'phone', 'city', 'total_display', 'status', 'email_sent']
+    list_display = ['number', 'created_at', 'channel', 'full_name', 'phone', 'city', 'total_display', 'status', 'email_sent']
     list_editable = ['status']
-    list_filter = ['status', 'created_at', 'city']
+    list_filter = ['channel', 'status', 'created_at', 'city']
     search_fields = ['number', 'full_name', 'phone', 'email', 'address']
     date_hierarchy = 'created_at'
-    readonly_fields = ['number', 'created_at', 'payment_method', 'subtotal', 'delivery_fee', 'total', 'email_sent']
+    readonly_fields = [
+        'number', 'created_at', 'payment_method', 'subtotal', 'promo_code', 'discount',
+        'delivery_fee', 'total', 'email_sent', 'user', 'channel', 'recorded_by',
+    ]
     inlines = [OrderItemInline]
     fieldsets = [
-        ('Order', {'fields': ['number', 'created_at', 'status', 'payment_method', 'email_sent']}),
-        ('Customer', {'fields': ['full_name', 'phone', 'email', 'city', 'address', 'notes']}),
-        ('Totals', {'fields': ['subtotal', 'delivery_fee', 'total']}),
+        ('Order', {'fields': ['number', 'channel', 'created_at', 'status', 'payment_method', 'email_sent', 'recorded_by']}),
+        ('Customer', {'fields': ['user', 'full_name', 'phone', 'email', 'city', 'address', 'notes']}),
+        ('Totals', {'fields': ['subtotal', 'promo_code', 'discount', 'delivery_fee', 'total']}),
     ]
 
     @admin.display(description='total', ordering='total')
     def total_display(self, obj):
         return f'{obj.currency}{obj.total}'
+
+
+@admin.register(PromoCode)
+class PromoCodeAdmin(admin.ModelAdmin):
+    list_display = ['code', 'offer', 'min_subtotal', 'usage', 'starts_at', 'ends_at', 'is_active']
+    list_editable = ['is_active']
+    list_filter = ['is_active', 'kind']
+    search_fields = ['code']
+    readonly_fields = ['times_used', 'created_at']
+    fieldsets = [
+        (None, {'fields': ['code', 'is_active']}),
+        ('Discount', {'fields': ['kind', 'value', 'min_subtotal']}),
+        ('Limits', {'fields': ['starts_at', 'ends_at', 'max_uses', 'times_used']}),
+    ]
+
+    @admin.display(description='offer')
+    def offer(self, obj):
+        return obj.describe(StoreSettings.load().currency)
+
+    @admin.display(description='used')
+    def usage(self, obj):
+        return f'{obj.times_used} / {obj.max_uses}' if obj.max_uses is not None else obj.times_used
 
 
 @admin.register(StoreSettings)

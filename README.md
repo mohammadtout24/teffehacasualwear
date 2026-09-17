@@ -64,6 +64,88 @@ bar, homepage title/subtitle/hero image, phone, WhatsApp, Instagram/Facebook/Tik
 links — and **Logo**: upload the logo image there to replace the text logo in
 the header.
 
+## Store manager (/manage/)
+
+A friendly back office for running the shop. Log in at `/manage/` with an admin
+account (`python manage.py createsuperuser` creates one; email or username both
+work). It covers the dashboard, online orders, products (photos, sizes, colors,
+categories), categories, promo codes, customers, sizes & colors and store
+settings. The classic Django admin is still available at `/admin/`.
+
+### Stock
+
+Every product has a stock count for each size × color, set in the **Stock** table
+on the product form (with a "Set every box to" shortcut). Customers never see
+the numbers: the shop only says **"Only 1 left" / "Only 2 left"**, crosses out
+sold-out sizes and blocks adding more than is available.
+
+- Online orders take their items out of stock when placed. If something sold out
+  meanwhile, the order isn't placed and the customer is sent back to their bag.
+- In-store sales take their items out of stock too. They're never blocked; if the
+  count was lower than what you sold, it goes to 0 and you're asked to recount.
+- Cancelling (or deleting) an order puts its items back in stock.
+- Products → filters **Running low** and **Out of stock**; the dashboard lists both.
+- **For sale** (on the product) marks a product sold out whatever the stock says.
+
+### Analytics
+
+**Analytics** shows how the shop is doing for a chosen period (last 7/30/90 days,
+this month, last month, this year or custom dates), for all sales or online / in
+store only, compared with the period just before:
+
+- revenue, orders, average order value, items sold, discounts and cancellations;
+- sales over time (revenue or orders, online vs in store) and the channel split;
+- online orders by status, top products, sales by category, sizes and colors sold;
+- busiest weekdays and hours, top delivery cities, promo code results;
+- buyers, repeat buyers (matched by phone number) and new customer accounts.
+
+Every chart has hover details and a table view. **Download orders (CSV)** exports
+every order in the period for Excel or Google Sheets.
+
+### In-store sales
+
+For purchases made in the physical shop: **In-store sales → Record a sale**.
+Type each product's **Product ID** — the ID you enter when adding the product
+(required and unique; shown in the Products list) — or search by name, and its photo appears so you can check it's the right
+item. Pick size/color/quantity (the price fills in and can be changed), optionally add
+a **promo code** (same rules as online; free-delivery codes don't apply in store)
+and save.
+Sales are saved as paid, count in the dashboard's sales and best sellers, and are kept
+separate from online orders.
+
+## Customer accounts
+
+Accounts are optional — guests can always check out. Customers can **sign up /
+log in with their email** (person icon in the header) to:
+
+- have checkout filled in from their default address, pick another saved
+  address, or tick *Save this address* to keep a new one;
+- see their orders and each order's status under **My account**;
+- manage saved addresses, their name/email and password.
+
+If someone orders as a guest and then signs up or logs in in the same browser,
+that order and its address are added to their account. Customers and their
+addresses are in **Admin → Users** (and **Admin → Addresses**); each order shows
+the customer account it belongs to.
+
+Password reset by email isn't included yet: it needs a verified sending domain
+in Resend, because the default `onboarding@resend.dev` sender can only email the
+Resend account owner.
+
+## Promo codes (Admin → Promo codes)
+
+Customers enter a code in the order summary at checkout. Each code gives one of:
+
+- **Percentage off** the bag subtotal (e.g. `10` = 10% off)
+- **Fixed amount off** (never more than the subtotal)
+- **Free delivery**
+
+Optional limits: minimum order, valid from / until dates, and a total usage
+limit. Codes are not case-sensitive, and *used* counts every order placed with
+the code. Untick **Active** to switch a code off. The discount never affects
+delivery pricing: free delivery is judged on the subtotal before the discount.
+The code and discount are shown on the order in the admin and in the order email.
+
 ## Order emails (Resend)
 
 New orders are sent to `ORDER_NOTIFICATION_EMAIL` (default
@@ -81,14 +163,26 @@ If sending fails, the order is still saved; the *Email sent* column in
 Admin → Orders shows which orders were emailed. Replying to an order email
 replies to the customer when they entered an email address.
 
-## Deploying (e.g. PythonAnywhere)
+## Deploying on Render (free)
 
-1. Set `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` in `.env`.
-2. `python manage.py migrate && python manage.py collectstatic`
-3. Map `/static/` → `staticfiles/` and `/media/` → `media/` in the web app's
-   static files settings.
-4. Free PythonAnywhere accounts can only reach allowlisted sites — emails go over
-   HTTPS to `api.resend.com` (not SMTP), so make sure it is on the allowlist.
+`render.yaml` describes everything: a free web service (gunicorn + WhiteNoise)
+and a free PostgreSQL database. `build.sh` installs, collects static files,
+migrates, creates the categories and the admin account.
+
+1. On render.com: **New → Blueprint**, pick this GitHub repository, **Apply**.
+2. It asks for two secrets: `RESEND_API_KEY` and `DJANGO_SUPERUSER_PASSWORD`
+   (the password for the `admin` account used at `/manage/`).
+3. Every push to `main` redeploys automatically.
+
+Set `LOAD_SAMPLE_DATA=True` in the service's Environment to add the demo products.
+
+Free-plan limits to know:
+- The site sleeps after 15 minutes without visitors; the next visit takes ~1 minute.
+- The disk is temporary: **photos uploaded in the store manager disappear on the
+  next deploy or restart** (sample photos are re-drawn automatically). For real
+  product photos, move media to a storage service (e.g. Cloudinary) or a paid disk.
+- The free database expires 30 days after it's created (Render emails first) —
+  upgrade it or create a new one before then.
 
 ## Tests
 

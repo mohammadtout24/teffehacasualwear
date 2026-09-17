@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — Teffaha Casual Wear{% endblock %}
+
+{% block content %}
+<section class="page-head page-head--compact">
+  <div class="container">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="{% url 'accounts:dashboard' %}">My account</a>
+      <span aria-current="page">{{ title }}</span>
+    </nav>
+    <h1 class="page-head__title">{{ title }}</h1>
+  </div>
+</section>
+
+<div class="container narrow account-form">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="{% if form.two_columns %}form-grid{% else %}form-stack form-stack--narrow{% endif %}">
+      {% include "accounts/partials/fields.html" %}
+    </div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="account-form__actions">
+      <button class="btn btn--primary" type="submit">{{ submit_label|default:"Save" }}</button>
+      <a class="link-btn" href="{{ next|default:'/account/' }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

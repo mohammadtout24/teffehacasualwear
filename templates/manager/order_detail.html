@@ -1,0 +1,142 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}{% if order.channel == 'in_store' %}Sale{% else %}Order{% endif %} {{ order.number }}{% endblock %}
+
+{% block breadcrumb %}
+  <nav class="m-crumbs">
+    {% if order.channel == 'in_store' %}<a href="{% url 'manager:in_store' %}">In-store sales</a>{% else %}<a href="{% url 'manager:orders' %}">Orders</a>{% endif %}
+    <span aria-hidden="true">/</span><span>{{ order.number }}</span>
+  </nav>
+{% endblock %}
+
+{% block heading %}{% if order.channel == 'in_store' %}Sale {{ order.number }} <span class="m-badge m-badge--instore m-heading-badge">In store</span>{% else %}Order {{ order.number }} <span class="m-badge m-badge--{{ order.status }} m-heading-badge">{{ order.get_status_display }}</span>{% endif %}{% endblock %}
+
+{% block actions %}
+  {% if order.channel == 'in_store' %}<a class="m-btn m-btn--outline" href="{% url 'manager:in_store_new' %}">Record another sale</a>{% endif %}
+  <button class="m-btn m-btn--outline" type="button" data-print>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M7 14h10v7H7z"/></svg>Print
+  </button>
+{% endblock %}
+
+{% block content %}
+<p class="m-muted m-lead">
+  {% if order.channel == 'in_store' %}
+    Sold in the shop {{ order.created_at|date:"l j F Y, H:i" }} · Paid in store{% if order.recorded_by %} · Recorded by {{ order.recorded_by.get_full_name|default:order.recorded_by.get_username }}{% endif %}
+  {% else %}
+    Placed {{ order.created_at|date:"l j F Y, H:i" }} · Cash on delivery ·
+    {% if order.user %}<a class="m-link" href="{% url 'manager:customer' order.user.pk %}">Customer account</a>{% else %}Guest checkout{% endif %}
+  {% endif %}
+</p>
+
+<div class="m-grid-2">
+  <div class="m-stack">
+    <section class="m-card">
+      <h2 class="m-card__title">Items <span class="m-muted">({{ order.item_count }})</span></h2>
+      <ul class="m-items">
+        {% for item in order.items.all %}
+          <li>
+            {% with img=item.image %}{% if img %}<img class="m-thumb" src="{{ img.image.url }}" alt="">{% else %}<span class="m-thumb m-thumb--empty"></span>{% endif %}{% endwith %}
+            <div class="m-cell-main">
+              {% if item.product %}<a href="{% url 'manager:product_edit' item.product.pk %}"><strong>{{ item.product_name }}</strong></a>{% else %}<strong>{{ item.product_name }}</strong>{% endif %}
+              {% with code=item.product_code|default:item.product.code %}
+                <span class="m-muted m-small">{% if code %}ID {{ code }}{% endif %}{% if code and item.color %} · {% endif %}{{ item.color }}{% if item.size %}{% if code or item.color %} · {% endif %}Size {{ item.size }}{% endif %}</span>
+              {% endwith %}
+              <span class="m-small">{{ item.quantity }} × {% money item.unit_price order.currency %}</span>
+            </div>
+            <strong class="num">{% money item.line_total order.currency %}</strong>
+          </li>
+        {% endfor %}
+      </ul>
+      <div class="m-totals">
+        {% if order.channel == 'online' %}
+          <div><span>Subtotal</span><span>{% money order.subtotal order.currency %}</span></div>
+          {% if order.promo_code %}
+            <div><span>Promo code <strong>{{ order.promo_code }}</strong></span><span>{% if order.discount %}−{% money order.discount order.currency %}{% else %}Free delivery{% endif %}</span></div>
+          {% endif %}
+          <div><span>Delivery</span><span>{% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}</span></div>
+          <div class="is-total"><span>Cash to collect</span><span>{% money order.total order.currency %}</span></div>
+        {% else %}
+          {% if order.promo_code %}
+            <div><span>Subtotal</span><span>{% money order.subtotal order.currency %}</span></div>
+            <div><span>Promo code <strong>{{ order.promo_code }}</strong></span><span>−{% money order.discount order.currency %}</span></div>
+          {% endif %}
+          <div class="is-total"><span>Total paid</span><span>{% money order.total order.currency %}</span></div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="m-stack">
+    {% if order.channel == 'online' %}
+      <section class="m-card m-no-print">
+        <h2 class="m-card__title">Order progress</h2>
+        {% if order.status == 'cancelled' %}
+          <div class="m-alert m-mt-sm">This order was cancelled.</div>
+        {% else %}
+          <ol class="m-steps">
+            {% for step in steps %}<li class="m-step is-{{ step.state }}">{{ step.label }}</li>{% endfor %}
+          </ol>
+        {% endif %}
+        {% if next_step %}
+          <form method="post" action="{% url 'manager:order_status' order.number %}" class="m-mt">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="{{ next_step.0 }}">
+            <button class="m-btn m-btn--primary m-btn--block m-btn--lg" type="submit">{{ next_step.1 }}</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{% url 'manager:order_status' order.number %}" class="m-status-form">
+          {% csrf_token %}
+          <label for="status" class="m-small m-muted">Or set status</label>
+          <select name="status" id="status">
+            {% for value, label in statuses %}<option value="{{ value }}" {% if value == order.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+          <button class="m-btn m-btn--outline m-btn--sm" type="submit">Update</button>
+        </form>
+      </section>
+    {% endif %}
+
+    {% if order.channel == 'online' or order.full_name or order.phone %}
+    <section class="m-card">
+      <h2 class="m-card__title">Customer</h2>
+      <dl class="m-dl">
+        <div><dt>Name</dt><dd>{{ order.full_name }}</dd></div>
+        <div>
+          <dt>Phone</dt>
+          <dd>
+            {{ order.phone }}
+            <span class="m-contact-actions m-no-print">
+              <a class="m-btn m-btn--outline m-btn--sm" href="tel:{{ order.phone }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Call
+              </a>
+              {% if whatsapp %}
+                <a class="m-btn m-btn--outline m-btn--sm" href="https://wa.me/{{ whatsapp }}" target="_blank" rel="noopener">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-3.7A8 8 0 1 1 8 19z"/></svg>WhatsApp
+                </a>
+              {% endif %}
+            </span>
+          </dd>
+        </div>
+        {% if order.email %}<div><dt>Email</dt><dd><a class="m-link" href="mailto:{{ order.email }}">{{ order.email }}</a></dd></div>{% endif %}
+        {% if order.address %}
+          <div><dt>Delivery address</dt><dd>{{ order.address }}{% if order.city|lower != order.address|lower %}<br>{{ order.city }}{% endif %}</dd></div>
+        {% endif %}
+        {% if order.notes %}<div><dt>{% if order.channel == 'in_store' %}Note{% else %}Customer’s note{% endif %}</dt><dd class="m-note">{{ order.notes|linebreaksbr }}</dd></div>{% endif %}
+      </dl>
+    </section>
+    {% endif %}
+
+    <section class="m-card m-no-print">
+      {% if order.channel == 'online' %}
+        <p class="m-small {% if order.email_sent %}m-ok{% else %}m-muted{% endif %}">
+          {% if order.email_sent %}✓ This order was emailed to you.{% else %}This order wasn’t emailed (emails may not be set up).{% endif %}
+        </p>
+      {% endif %}
+      <form method="post" action="{% url 'manager:order_delete' order.number %}" data-confirm="Delete {% if order.channel == 'in_store' %}sale{% else %}order{% endif %} {{ order.number }} for good? This can’t be undone."{% if order.channel == 'online' %} class="m-mt-sm"{% endif %}>
+        {% csrf_token %}
+        <button class="m-btn m-btn--danger m-btn--sm" type="submit">Delete {% if order.channel == 'in_store' %}sale{% else %}order{% endif %}</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

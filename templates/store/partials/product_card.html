@@ -10,7 +10,7 @@
       {% endif %}
     {% endwith %}
     <span class="card__badges">
-      {% if not product.in_stock %}<span class="badge badge--muted">Sold out</span>
+      {% if not product.is_available %}<span class="badge badge--muted">Sold out</span>
       {% elif product.on_sale %}<span class="badge badge--sale">−{{ product.discount_percent }}%</span>
       {% elif product.is_featured and not hide_bestseller_badge %}<span class="badge">Best seller</span>{% endif %}
     </span>

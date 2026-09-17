@@ -36,7 +36,7 @@
               {% for item in items %}
               <tr>
                 <td style="padding:12px 0;border-bottom:1px solid #e9e1d8;">
-                  <strong>{{ item.product_name }}</strong><br>
+                  <strong>{{ item.product_name }}</strong>{% if item.product_code %} <span style="color:#7d6f6f;font-size:13px;">· ID {{ item.product_code }}</span>{% endif %}<br>
                   <span style="color:#7d6f6f;font-size:13px;">{% if item.color %}{{ item.color }}{% endif %}{% if item.color and item.size %} · {% endif %}{% if item.size %}Size {{ item.size }}{% endif %}{% if item.color or item.size %} · {% endif %}{% money item.unit_price order.currency %} each</span>
                 </td>
                 <td style="padding:12px 0;border-bottom:1px solid #e9e1d8;text-align:center;">{{ item.quantity }}</td>
@@ -44,6 +44,7 @@
               </tr>
               {% endfor %}
               <tr><td colspan="2" style="padding:12px 0 4px;color:#7d6f6f;">Subtotal</td><td style="padding:12px 0 4px;text-align:right;">{% money order.subtotal order.currency %}</td></tr>
+              {% if order.promo_code %}<tr><td colspan="2" style="padding:4px 0;color:#7d6f6f;">Promo code <strong style="color:#7a0f1f;">{{ order.promo_code }}</strong></td><td style="padding:4px 0;text-align:right;">{% if order.discount %}−{% money order.discount order.currency %}{% else %}Free delivery{% endif %}</td></tr>{% endif %}
               <tr><td colspan="2" style="padding:4px 0;color:#7d6f6f;">Delivery</td><td style="padding:4px 0;text-align:right;">{% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}</td></tr>
               <tr><td colspan="2" style="padding:10px 0 0;font-size:16px;"><strong>Total to collect</strong></td><td style="padding:10px 0 0;text-align:right;font-size:18px;color:#7a0f1f;"><strong>{% money order.total order.currency %}</strong></td></tr>
             </table>

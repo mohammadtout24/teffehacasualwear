@@ -1,0 +1,32 @@
+{% extends "manager/base.html" %}
+
+{% block title %}Log in{% endblock %}
+
+{% block bare %}
+<div class="m-login">
+  <div class="m-login__art">
+    <div>
+      {% include "store/partials/logo_circle.svg" %}
+      <p>Store manager</p>
+    </div>
+  </div>
+  <div class="m-login__panel">
+    <form method="post" class="m-login__card" novalidate>
+      {% csrf_token %}
+      <div>
+        <h1>Welcome back</h1>
+        <p class="m-muted">Log in with your admin account to manage orders, products and your shop.</p>
+      </div>
+      {% if user.is_authenticated and not user.is_staff %}
+        <div class="m-alert m-alert--warn">You’re logged in as {{ user.email|default:user.get_username }}, which isn’t an admin account. Log in with an admin account below.</div>
+      {% endif %}
+      {% if form.non_field_errors %}<div class="m-alert" role="alert">{{ form.non_field_errors.0 }}</div>{% endif %}
+      {% include "manager/partials/field.html" with field=form.username %}
+      {% include "manager/partials/field.html" with field=form.password %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="m-btn m-btn--primary m-btn--block m-btn--lg" type="submit">Log in</button>
+      <a class="m-link m-small" href="{% url 'store:home' %}">← Back to the shop</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

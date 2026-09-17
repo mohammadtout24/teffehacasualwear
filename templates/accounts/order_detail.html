@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Order {{ order.number }} — Teffaha Casual Wear{% endblock %}
+
+{% block content %}
+<section class="page-head page-head--compact">
+  <div class="container">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="{% url 'accounts:dashboard' %}">My account</a>
+      <span aria-current="page">Order {{ order.number }}</span>
+    </nav>
+    <h1 class="page-head__title">Order {{ order.number }}</h1>
+    <p class="page-head__intro">
+      Placed {{ order.created_at|date:"j F Y, H:i" }} ·
+      <span class="order-status order-status--{{ order.status }}">{{ order.get_status_display }}</span>
+      · Cash on delivery
+    </p>
+  </div>
+</section>
+
+<div class="container narrow account-order">
+  {% include "store/partials/order_summary.html" %}
+  <div class="center">
+    <a class="btn btn--outline" href="{% url 'accounts:dashboard' %}">Back to my account</a>
+  </div>
+</div>
+{% endblock %}

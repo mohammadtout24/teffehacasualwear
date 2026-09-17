@@ -1,0 +1,14 @@
+<ul class="a-bars">
+  {% for row in rows %}
+    <li data-tip="{{ row.tip }}" tabindex="0">
+      <span class="a-bars__label" title="{{ row.label }}">
+        {% if row.hex %}<i class="m-swatch" style="background: {{ row.hex }}" aria-hidden="true"></i>{% endif %}
+        {% if row.key %}<span class="m-badge m-badge--{{ row.key }}">{{ row.label }}</span>{% else %}<span>{{ row.label }}</span>{% endif %}
+      </span>
+      <span class="a-bars__area">
+        <span class="a-bar" style="width: {{ row.width }}%"></span>
+        <span class="a-bars__value">{{ row.value }}</span>
+      </span>
+    </li>
+  {% endfor %}
+</ul>

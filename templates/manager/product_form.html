@@ -1,0 +1,177 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}{% if product %}Edit {{ product.name }}{% else %}Add product{% endif %}{% endblock %}
+{% block breadcrumb %}<nav class="m-crumbs"><a href="{% url 'manager:products' %}">Products</a><span aria-hidden="true">/</span><span>{% if product %}Edit{% else %}New product{% endif %}</span></nav>{% endblock %}
+{% block heading %}{% if product %}{{ product.name }} {% if product.code %}<span class="m-badge m-badge--plain m-heading-badge" title="Use this ID to record in-store sales">ID {{ product.code }}</span>{% endif %}{% else %}Add a product{% endif %}{% endblock %}
+
+{% block actions %}
+  {% if product %}<a class="m-btn m-btn--outline" href="{{ product.get_absolute_url }}" target="_blank" rel="noopener">View in shop ↗</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% if form.errors %}
+    <div class="m-alert" role="alert">
+      <strong>Please fix the fields marked in red.</strong>
+      {% if photos_lost %}The photos you picked weren’t saved — please choose them again.{% endif %}
+    </div>
+  {% endif %}
+
+  <div class="m-grid-2">
+    <div class="m-stack">
+      <section class="m-card">
+        <h2 class="m-card__title">Basics</h2>
+        <div class="m-form-grid m-mt">
+          {% include "manager/partials/field.html" with field=form.code %}
+          {% include "manager/partials/field.html" with field=form.name full=True %}
+          {% include "manager/partials/field.html" with field=form.description full=True %}
+          {% include "manager/partials/field.html" with field=form.details full=True %}
+        </div>
+      </section>
+
+      <section class="m-card">
+        <h2 class="m-card__title">Photos</h2>
+        <p class="m-card__sub">Portrait photos (3:4, like 900×1200) look best. The main photo is the one shown in the shop.</p>
+        {% if images %}
+          <div class="m-photos m-mt">
+            {% for image in images %}
+              <div class="m-photo{% if forloop.first %} is-main{% endif %}" data-photo>
+                <img src="{{ image.image.url }}" alt="">
+                <div class="m-photo__body">
+                  <label class="m-photo__opt"><input type="radio" name="main_image" value="{{ image.pk }}" {% if forloop.first %}checked{% endif %} data-main> Main photo</label>
+                  <select name="image-{{ image.pk }}-color" aria-label="Color shown in this photo">
+                    <option value="">Any color</option>
+                    {% for color in all_colors %}<option value="{{ color.pk }}" {% if image.color_id == color.pk %}selected{% endif %}>{{ color.name }}</option>{% endfor %}
+                  </select>
+                  <label class="m-photo__opt m-photo__remove"><input type="checkbox" name="image-{{ image.pk }}-remove" data-remove> Remove</label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <label class="m-dropzone m-mt" data-dropzone>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+          <strong data-dropzone-label>Click to add photos</strong>
+          <span class="m-muted m-small">or drag them here — you can pick several at once</span>
+          <input type="file" name="new_images" accept="image/*" multiple>
+        </label>
+        <div class="m-preview" data-preview-list></div>
+        {% for error in form.new_images.errors %}<p class="m-error">{{ error }}</p>{% endfor %}
+        {% if all_colors %}
+          <div class="m-field m-mt m-field--inline">
+            <label for="{{ form.new_images_color.id_for_label }}">{{ form.new_images_color.label }}</label>
+            {{ form.new_images_color }}
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="m-card">
+        <h2 class="m-card__title">Sizes</h2>
+        <p class="m-card__sub">Tick every size you sell. Customers choose one before adding to their bag.</p>
+        <div class="m-chips m-mt">
+          {% for size in all_sizes %}
+            <label class="m-chip"><input type="checkbox" name="sizes" value="{{ size.pk }}" {% if size.pk|stringformat:"s" in selected_sizes %}checked{% endif %}><span>{{ size.name }}</span></label>
+          {% empty %}
+            <p class="m-muted">No sizes yet — add them below.</p>
+          {% endfor %}
+        </div>
+        <div class="m-form-grid m-mt">
+          {% include "manager/partials/field.html" with field=form.new_sizes full=True %}
+        </div>
+      </section>
+
+      <section class="m-card">
+        <h2 class="m-card__title">Colors</h2>
+        <p class="m-card__sub">Tick the colors this product comes in.</p>
+        <div class="m-chips m-mt">
+          {% for color in all_colors %}
+            <label class="m-chip"><input type="checkbox" name="colors" value="{{ color.pk }}" {% if color.pk|stringformat:"s" in selected_colors %}checked{% endif %}><span><i class="m-swatch" style="background: {{ color.hex_code }}"></i>{{ color.name }}</span></label>
+          {% empty %}
+            <p class="m-muted">No colors yet — add one below.</p>
+          {% endfor %}
+        </div>
+        <div class="m-inline-add m-mt">
+          {% include "manager/partials/field.html" with field=form.new_color_name %}
+          {% include "manager/partials/field.html" with field=form.new_color_hex %}
+        </div>
+      </section>
+
+      <section class="m-card" id="stock">
+        <div class="m-card__head">
+          <div>
+            <h2 class="m-card__title">Stock</h2>
+            <p class="m-card__sub">How many you have of each size and color. Customers never see these numbers — only “Only 1 left” or “Only 2 left” when it gets low.</p>
+          </div>
+          <strong class="m-stock-total" data-stock-total></strong>
+        </div>
+        <input type="hidden" name="stock_grid" value="1">
+        <div class="m-stock-tools">
+          <label for="stock-fill">Set every box to</label>
+          <input type="number" id="stock-fill" min="0" max="99999" inputmode="numeric" placeholder="e.g. 10">
+          <button type="button" class="m-btn m-btn--outline m-btn--sm" data-stock-fill>Apply</button>
+        </div>
+        <div class="m-table-wrap">
+          <table class="m-stock-grid" data-stock-grid></table>
+        </div>
+        <p class="m-help m-mt-sm">The table follows the sizes and colors ticked above. Sizes or colors you type in the “add” boxes can be stocked after you save. Online orders and in-store sales take items out of stock automatically.</p>
+      </section>
+    </div>
+
+    <div class="m-stack">
+      <section class="m-card">
+        <h2 class="m-card__title">Price</h2>
+        <div class="m-form-grid m-form-grid--one m-mt">
+          {% include "manager/partials/field.html" with field=form.price prefix=store.currency %}
+          {% include "manager/partials/field.html" with field=form.compare_at_price prefix=store.currency %}
+        </div>
+      </section>
+
+      <section class="m-card">
+        <h2 class="m-card__title">Visibility</h2>
+        <div class="m-mt-sm">
+          {% include "manager/partials/switch_row.html" with field=form.is_active help="Turn off to hide it without deleting." %}
+          {% include "manager/partials/switch_row.html" with field=form.in_stock help="Turn off to show it as sold out, whatever the stock says." %}
+          {% include "manager/partials/switch_row.html" with field=form.is_featured help="Featured on the homepage." %}
+        </div>
+      </section>
+
+      <section class="m-card{% if form.categories.errors %} has-error{% endif %}">
+        <h2 class="m-card__title">Categories <span class="m-req" aria-hidden="true">*</span></h2>
+        <p class="m-card__sub">Tick the most specific ones, like T-Shirts. It also shows in the groups above it.</p>
+        {% for error in form.categories.errors %}<p class="m-error m-mt-sm">{{ error }}</p>{% endfor %}
+        <div class="m-tree m-mt">
+          {% for cat in categories %}
+            <label class="depth-{{ cat.depth }}"><input type="checkbox" name="categories" value="{{ cat.pk }}" {% if cat.pk|stringformat:"s" in selected_categories %}checked{% endif %}> {{ cat.name }}</label>
+          {% endfor %}
+        </div>
+      </section>
+
+
+      {% if product %}
+        <section class="m-card m-danger-zone">
+          <h2 class="m-card__title">Delete this product</h2>
+          <p class="m-card__sub">Removes it and its photos. Past orders keep their details. To hide it for now, turn off “Show in the shop” instead.</p>
+          <button class="m-btn m-btn--danger m-btn--sm m-mt" type="submit" form="delete-product">Delete product</button>
+        </section>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="m-savebar">
+    <a class="m-btn m-btn--ghost" href="{% url 'manager:products' %}">Cancel</a>
+    <button class="m-btn m-btn--primary m-savebar__main" type="submit">Save product</button>
+    {% if not product %}<button class="m-btn m-btn--outline" type="submit" name="then" value="new">Save &amp; add another</button>{% endif %}
+  </div>
+</form>
+
+{% if product %}
+  <form id="delete-product" method="post" action="{% url 'manager:product_delete' product.pk %}" data-confirm="Delete “{{ product.name }}” for good? This can’t be undone.">
+    {% csrf_token %}
+  </form>
+{% endif %}
+{{ stock_data|json_script:"stock-data" }}
+{% endblock %}
+
+{% block scripts %}<script src="{% asset 'js/stock-grid.js' %}" defer></script>{% endblock %}

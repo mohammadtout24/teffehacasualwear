@@ -1,0 +1,117 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Good {{ greeting }}, {{ user.first_name|default:user.get_username }}{% endblock %}
+
+{% block actions %}
+  <a class="m-btn m-btn--outline" href="{% url 'manager:in_store_new' %}">Record in-store sale</a>
+  <a class="m-btn m-btn--primary" href="{% url 'manager:product_add' %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add product
+  </a>
+{% endblock %}
+
+{% block content %}
+<section class="m-kpis" aria-label="Your shop at a glance">
+  <a class="m-kpi m-kpi--accent" href="{% url 'manager:orders' %}?status=new">
+    <span class="m-kpi__label">New orders to confirm</span>
+    <span class="m-kpi__value">{{ kpis.new_orders }}</span>
+    <span class="m-kpi__note">{% if kpis.new_orders %}Call to confirm, then update them →{% else %}You’re all caught up{% endif %}</span>
+  </a>
+  <div class="m-kpi">
+    <span class="m-kpi__label">Orders this month</span>
+    <span class="m-kpi__value">{{ kpis.month_orders }}</span>
+    <span class="m-kpi__split">{{ kpis.month_online }} online · {{ kpis.month_in_store }} in store</span>
+    {% include "manager/partials/delta.html" with delta=kpis.orders_delta %}
+  </div>
+  <div class="m-kpi">
+    <span class="m-kpi__label">Sales this month</span>
+    <span class="m-kpi__value">{% money kpis.month_sales %}</span>
+    <span class="m-kpi__split">{% if kpis.store_sales %}{% money kpis.store_sales %} of it in store{% else %}Online and in store{% endif %}</span>
+    {% include "manager/partials/delta.html" with delta=kpis.sales_delta %}
+  </div>
+  <a class="m-kpi" href="{% url 'manager:customers' %}">
+    <span class="m-kpi__label">Customer accounts</span>
+    <span class="m-kpi__value">{{ kpis.customers }}</span>
+    <span class="m-kpi__note">{% if kpis.new_customers %}+{{ kpis.new_customers }} joined this month{% else %}No new sign-ups this month{% endif %}</span>
+  </a>
+</section>
+
+<div class="m-grid-2">
+  <section class="m-card m-card--flush">
+    <div class="m-card__head">
+      <h2 class="m-card__title">Latest orders</h2>
+      <a class="m-link m-small" href="{% url 'manager:orders' %}">View all orders →</a>
+    </div>
+    {% if recent_orders %}
+      <div class="m-table-wrap">
+        <table class="m-table m-table--cards">
+          <thead><tr><th>Order</th><th>Customer</th><th class="num">Total</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for order in recent_orders %}
+              <tr class="m-clickable" data-href="{% url 'manager:order' order.number %}">
+                <td class="m-grow">
+                  <div class="m-cell-main">
+                    <a href="{% url 'manager:order' order.number %}"><strong>{{ order.number }}</strong></a>
+                    <span class="m-muted m-small">{{ order.created_at|timesince }} ago</span>
+                  </div>
+                </td>
+                <td><div class="m-cell-main"><span>{{ order.full_name }}</span><span class="m-muted m-small">{{ order.city }}</span></div></td>
+                <td class="num"><strong>{% money order.total order.currency %}</strong></td>
+                <td><span class="m-badge m-badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="m-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+        <h3>No orders yet</h3>
+        <p>When customers check out, their orders show up here.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <div class="m-stack">
+    <section class="m-card">
+      <div class="m-card__head">
+        <div>
+          <h2 class="m-card__title">Best sellers</h2>
+          <p class="m-card__sub">Last 30 days</p>
+        </div>
+      </div>
+      {% if top_products %}
+        <ol class="m-list">
+          {% for item in top_products %}
+            <li>
+              <span class="m-list__rank">{{ forloop.counter }}</span>
+              {% if item.image %}<img class="m-thumb m-thumb--sm" src="{{ item.image.image.url }}" alt="">{% else %}<span class="m-thumb m-thumb--sm m-thumb--empty"></span>{% endif %}
+              <span class="m-list__main">
+                {% if item.product_id %}<a href="{% url 'manager:product_edit' item.product_id %}"><strong>{{ item.product_name }}</strong></a>{% else %}<strong>{{ item.product_name }}</strong>{% endif %}
+                <span class="m-muted m-small">{{ item.sold }} sold</span>
+              </span>
+              <span class="m-list__value">{% money item.revenue %}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="m-muted">Nothing sold in the last 30 days yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="m-card">
+      <h2 class="m-card__title">Needs attention</h2>
+      {% if attention %}
+        <ul class="m-attention">
+          {% for item in attention %}
+            <li><a href="{{ item.url }}"><strong>{{ item.count }}</strong> {{ item.label }}<span aria-hidden="true">→</span></a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="m-muted m-mt-sm">Everything looks good.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

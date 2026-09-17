@@ -1,0 +1,40 @@
+databases:
+  - name: teffaha-db
+    plan: free
+    databaseName: teffaha
+    user: teffaha
+
+services:
+  - type: web
+    name: teffaha-casual-wear
+    runtime: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DATABASE_URL
+        fromDatabase:
+          name: teffaha-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: LOAD_SAMPLE_DATA
+        value: "False"
+      - key: WEB_CONCURRENCY
+        value: 2
+      - key: ORDER_NOTIFICATION_EMAIL
+        value: teffehawear@gmail.com
+      - key: DEFAULT_FROM_EMAIL
+        value: onboarding@resend.dev
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: admin
+      - key: DJANGO_SUPERUSER_EMAIL
+        value: teffehawear@gmail.com
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false

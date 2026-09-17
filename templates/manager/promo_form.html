@@ -1,0 +1,64 @@
+{% extends "manager/base.html" %}
+
+{% block title %}{% if promo %}Edit {{ promo.code }}{% else %}New promo code{% endif %}{% endblock %}
+{% block breadcrumb %}<nav class="m-crumbs"><a href="{% url 'manager:promos' %}">Promo codes</a><span aria-hidden="true">/</span><span>{% if promo %}Edit{% else %}New{% endif %}</span></nav>{% endblock %}
+{% block heading %}{% if promo %}{{ promo.code }}{% else %}New promo code{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" novalidate class="m-narrow">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="m-alert" role="alert">{{ form.non_field_errors.0 }}</div>{% endif %}
+
+  <section class="m-card">
+    <div class="m-form-grid">
+      {% include "manager/partials/field.html" with field=form.code full=True %}
+      <div class="m-field m-field--full">
+        <span class="m-label">{{ form.kind.label }}</span>
+        <div class="m-radio-cards">
+          {% for radio in form.kind %}<label class="m-radio-card">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>{% endfor %}
+        </div>
+      </div>
+      <div class="m-field{% if form.value.errors %} has-error{% endif %}" data-kind-value>
+        <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
+        <div class="m-affix m-affix--suffix"><span data-kind-suffix data-currency="{{ store.currency }}">%</span>{{ form.value }}</div>
+        {% for error in form.value.errors %}<p class="m-error">{{ error }}</p>{% endfor %}
+      </div>
+      {% include "manager/partials/field.html" with field=form.min_subtotal prefix=store.currency %}
+    </div>
+  </section>
+
+  <section class="m-card m-mt-lg">
+    <h2 class="m-card__title">Limits <span class="m-muted m-small">(all optional)</span></h2>
+    <div class="m-form-grid m-mt">
+      {% include "manager/partials/field.html" with field=form.starts_at %}
+      {% include "manager/partials/field.html" with field=form.ends_at %}
+      {% include "manager/partials/field.html" with field=form.max_uses %}
+      {% if promo %}
+        <div class="m-field"><span class="m-label">Used so far</span><p class="m-static">{{ promo.times_used }} order{{ promo.times_used|pluralize }}</p></div>
+      {% endif %}
+    </div>
+    <div class="m-mt">
+      {% include "manager/partials/switch_row.html" with field=form.is_active help="Turn off to stop the code working." %}
+    </div>
+  </section>
+
+  {% if promo %}
+    <section class="m-card m-danger-zone m-mt-lg">
+      <h2 class="m-card__title">Delete this code</h2>
+      <p class="m-card__sub">Past orders keep the discount they got.</p>
+      <button class="m-btn m-btn--danger m-btn--sm m-mt" type="submit" form="delete-promo">Delete code</button>
+    </section>
+  {% endif %}
+
+  <div class="m-savebar">
+    <a class="m-btn m-btn--ghost" href="{% url 'manager:promos' %}">Cancel</a>
+    <button class="m-btn m-btn--primary" type="submit">Save promo code</button>
+  </div>
+</form>
+
+{% if promo %}
+  <form id="delete-promo" method="post" action="{% url 'manager:promo_delete' promo.pk %}" data-confirm="Delete the promo code {{ promo.code }}?">
+    {% csrf_token %}
+  </form>
+{% endif %}
+{% endblock %}

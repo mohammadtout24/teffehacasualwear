@@ -1,0 +1,101 @@
+{% load store_tags %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{% block title %}{% endblock %} · Teffaha store manager</title>
+  <link rel="icon" href="{% asset 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% asset 'css/manager.css' %}">
+</head>
+<body class="m-body">
+{% if user.is_authenticated and user.is_staff %}
+  <div class="m-shell" data-shell>
+    <aside class="m-side" aria-label="Store manager">
+      <a class="m-brand" href="{% url 'manager:dashboard' %}">
+        <span class="m-brand__word">Teffaha</span>
+        <span class="m-brand__tag">Store manager</span>
+      </a>
+      <nav class="m-nav">
+        <a class="m-nav__link{% if section == 'dashboard' %} is-active{% endif %}" href="{% url 'manager:dashboard' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4zM14 20h6v-9h-6zM14 4h6v4h-6zM4 20h6v-3H4z"/></svg>Dashboard
+        </a>
+        <a class="m-nav__link{% if section == 'analytics' %} is-active{% endif %}" href="{% url 'manager:analytics' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/></svg>Analytics
+        </a>
+        <a class="m-nav__link{% if section == 'orders' %} is-active{% endif %}" href="{% url 'manager:orders' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Orders
+          {% if new_order_count %}<span class="m-nav__badge" title="New orders">{{ new_order_count }}</span>{% endif %}
+        </a>
+        <a class="m-nav__link{% if section == 'in_store' %} is-active{% endif %}" href="{% url 'manager:in_store' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9 5 4h14l1.5 5M4.5 9v11h15V9M3.5 9h17M9.5 20v-6h5v6"/></svg>In-store sales
+        </a>
+        <a class="m-nav__link{% if section == 'products' %} is-active{% endif %}" href="{% url 'manager:products' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 3.5 6l2 4.2L8 9v12h8V9l2.5 1.2 2-4.2L16 3a4 4 0 0 1-8 0Z"/></svg>Products
+        </a>
+        <a class="m-nav__link{% if section == 'categories' %} is-active{% endif %}" href="{% url 'manager:categories' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z"/></svg>Categories
+        </a>
+        <a class="m-nav__link{% if section == 'promos' %} is-active{% endif %}" href="{% url 'manager:promos' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9-9-9Z"/><circle cx="8" cy="8" r="1.5"/></svg>Promo codes
+        </a>
+        <a class="m-nav__link{% if section == 'customers' %} is-active{% endif %}" href="{% url 'manager:customers' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.6.8 2.7 2.6 3 5.2"/></svg>Customers
+        </a>
+        <p class="m-nav__group">Setup</p>
+        <a class="m-nav__link{% if section == 'options' %} is-active{% endif %}" href="{% url 'manager:options' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.8-1.8 0-1.3-1-1.6-1-2.7 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>Sizes &amp; colors
+        </a>
+        <a class="m-nav__link{% if section == 'settings' %} is-active{% endif %}" href="{% url 'manager:settings' %}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Store settings
+        </a>
+      </nav>
+      <div class="m-side__foot">
+        <a class="m-nav__link" href="{% url 'store:home' %}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>View your shop
+        </a>
+        <div class="m-user">
+          <span class="m-avatar" aria-hidden="true">{{ user.get_full_name|default:user.get_username|first|upper }}</span>
+          <span class="m-user__name">{{ user.get_full_name|default:user.get_username }}</span>
+        </div>
+        <form method="post" action="{% url 'manager:logout' %}">
+          {% csrf_token %}
+          <button class="m-side__logout" type="submit">Log out</button>
+        </form>
+      </div>
+    </aside>
+    <div class="m-side-backdrop" data-side-close></div>
+
+    <div class="m-main">
+      <header class="m-top">
+        <button class="m-icon-btn m-menu-btn" type="button" aria-label="Open menu" data-side-open>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+        </button>
+        <div class="m-top__title">
+          {% block breadcrumb %}{% endblock %}
+          <h1>{% block heading %}{% endblock %}</h1>
+        </div>
+        <div class="m-top__actions">{% block actions %}{% endblock %}</div>
+      </header>
+      <main class="m-content" id="main">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+{% else %}
+  {% block bare %}{% endblock %}
+{% endif %}
+
+{% if messages %}
+  <div class="m-toasts">
+    {% for message in messages %}<div class="m-toast m-toast--{{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<script src="{% asset 'js/manager.js' %}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

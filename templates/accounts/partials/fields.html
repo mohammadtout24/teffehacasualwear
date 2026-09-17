@@ -1,0 +1,15 @@
+{% if form.non_field_errors %}
+  <div class="form-alert field--full" role="alert">{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>
+{% endif %}
+{% for field in form %}
+  {% if field.widget_type == 'checkbox' %}
+    <label class="checkbox field--full">{{ field }}<span>{{ field.label }}</span></label>
+  {% else %}
+    <div class="field{% if field.name in form.full_width %} field--full{% endif %}{% if field.errors %} has-error{% endif %}">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<div class="field__help">{{ field.help_text }}</div>{% endif %}
+      {% for error in field.errors %}<p class="field__error">{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}

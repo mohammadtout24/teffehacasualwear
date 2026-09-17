@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load store_tags %}
+
+{% block title %}My account — Teffaha Casual Wear{% endblock %}
+
+{% block content %}
+<section class="page-head page-head--compact">
+  <div class="container account-head">
+    <div>
+      <p class="eyebrow">My account</p>
+      <h1 class="page-head__title">Hello, {{ user.first_name|default:user.email }}</h1>
+    </div>
+    <div class="card-actions">
+      {% if user.is_staff %}<a class="btn btn--primary btn--small" href="{% url 'manager:dashboard' %}">Store manager</a>{% endif %}
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button class="btn btn--outline btn--small" type="submit">Log out</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="account">
+    <section id="orders">
+      <h2 class="account__title">My orders</h2>
+      {% if orders %}
+        <ul class="order-list">
+          {% for order in orders %}
+            <li>
+              <a class="order-row" href="{% url 'accounts:order' order.number %}">
+                <span class="order-row__main">
+                  <strong>Order {{ order.number }}</strong>
+                  <span class="muted">{{ order.created_at|date:"j M Y" }} · {{ order.item_count }} item{{ order.item_count|pluralize }}</span>
+                </span>
+                <span class="order-status order-status--{{ order.status }}">{{ order.get_status_display }}</span>
+                <span class="order-row__total">{% money order.total order.currency %}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="account__empty">
+          <p>You haven’t placed any orders yet.</p>
+          <a class="btn btn--primary btn--small" href="{% url 'store:new_in' %}">Start shopping</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <section id="addresses">
+      <div class="account__title-row">
+        <h2 class="account__title">Saved addresses</h2>
+        {% if addresses %}<a class="link-arrow" href="{% url 'accounts:address_add' %}">Add address</a>{% endif %}
+      </div>
+      {% if addresses %}
+        <div class="address-grid">
+          {% for address in addresses %}
+            <article class="address-card{% if address.is_default %} is-default{% endif %}">
+              <header class="address-card__head">
+                <strong>{{ address.label|default:address.city }}</strong>
+                {% if address.is_default %}<span class="tag-default">Default</span>{% endif %}
+              </header>
+              <p>{{ address.full_name }}<br>{{ address.phone }}<br>{{ address.address }}{% if address.city|lower != address.address|lower %}<br>{{ address.city }}{% endif %}</p>
+              <div class="card-actions">
+                <a class="link-btn" href="{% url 'accounts:address_edit' address.pk %}">Edit</a>
+                {% if not address.is_default %}
+                  <form method="post" action="{% url 'accounts:address_default' address.pk %}">
+                    {% csrf_token %}<button class="link-btn" type="submit">Make default</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{% url 'accounts:address_delete' address.pk %}" data-confirm="Remove this address?">
+                  {% csrf_token %}<button class="link-btn" type="submit">Remove</button>
+                </form>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="account__empty">
+          <p>No saved addresses yet. Add one here, or tick “Save this address” when you check out.</p>
+          <a class="btn btn--outline btn--small" href="{% url 'accounts:address_add' %}">Add address</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <section id="details">
+      <h2 class="account__title">Account details</h2>
+      <div class="details-card">
+        <p><span class="muted">Name</span>{{ user.get_full_name|default:"—" }}</p>
+        <p><span class="muted">Email</span>{{ user.email }}</p>
+        <div class="card-actions">
+          <a class="link-btn" href="{% url 'accounts:details' %}">Edit details</a>
+          <a class="link-btn" href="{% url 'accounts:password' %}">Change password</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

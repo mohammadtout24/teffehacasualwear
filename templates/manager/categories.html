@@ -1,0 +1,46 @@
+{% extends "manager/base.html" %}
+
+{% block title %}Categories{% endblock %}
+{% block heading %}Categories{% endblock %}
+
+{% block actions %}
+  <a class="m-btn m-btn--primary" href="{% url 'manager:category_add' %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add category
+  </a>
+{% endblock %}
+
+{% block content %}
+<p class="m-lead m-muted">These are the menus customers browse. Main departments (Women, Men) hold groups like Tops, which hold the most specific categories like T-Shirts.</p>
+
+<section class="m-card m-card--flush">
+  <div class="m-table-wrap">
+    <table class="m-table m-table--cards">
+      <thead><tr><th>Category</th><th class="num">Products</th><th>In menu</th><th></th></tr></thead>
+      <tbody>
+        {% for cat in categories %}
+          {% url 'manager:category_toggle' cat.pk as toggle_url %}
+          <tr>
+            <td class="m-grow">
+              <div class="m-tree-name depth-{{ cat.depth }}">
+                {% if cat.depth %}<span class="m-tree-branch" aria-hidden="true">└</span>{% endif %}
+                <a href="{% url 'manager:category_edit' cat.pk %}"><strong>{{ cat.name }}</strong></a>
+              </div>
+            </td>
+            <td class="num">{{ cat.product_count }}</td>
+            <td>{% include "manager/partials/toggle.html" with url=toggle_url field="is_active" value=cat.is_active label="In menu" name=cat.name %}</td>
+            <td class="num">
+              <div class="m-row-actions">
+                {% if cat.depth < 2 %}<a class="m-btn m-btn--ghost m-btn--sm" href="{% url 'manager:category_add' %}?parent={{ cat.pk }}">+ Sub-category</a>{% endif %}
+                <a class="m-btn m-btn--outline m-btn--sm" href="{% url 'manager:category_edit' cat.pk %}">Edit</a>
+                <a class="m-btn m-btn--ghost m-btn--sm" href="{{ cat.get_absolute_url }}" target="_blank" rel="noopener" aria-label="View {{ cat.name }} in the shop">↗</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="m-empty"><h3>No categories yet</h3></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "manager/base.html" %}
+
+{% block title %}Store settings{% endblock %}
+{% block heading %}Store settings{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate class="m-narrow">
+  {% csrf_token %}
+  {% if form.errors %}<div class="m-alert" role="alert"><strong>Please fix the fields marked in red.</strong></div>{% endif %}
+
+  <section class="m-card" id="delivery">
+    <h2 class="m-card__title">Delivery &amp; prices</h2>
+    <p class="m-card__sub">Payment is always cash on delivery.</p>
+    <div class="m-form-grid m-mt">
+      {% include "manager/partials/field.html" with field=form.delivery_fee prefix=store.currency %}
+      {% include "manager/partials/field.html" with field=form.free_delivery_over prefix=store.currency %}
+      {% include "manager/partials/field.html" with field=form.delivery_time %}
+      {% include "manager/partials/field.html" with field=form.currency %}
+    </div>
+  </section>
+
+  <section class="m-card m-mt-lg" id="contact">
+    <h2 class="m-card__title">Contact &amp; social media</h2>
+    <p class="m-card__sub">Shown in the website footer. Leave anything you don’t use empty.</p>
+    <div class="m-form-grid m-mt">
+      {% include "manager/partials/field.html" with field=form.phone %}
+      {% include "manager/partials/field.html" with field=form.whatsapp %}
+      {% include "manager/partials/field.html" with field=form.instagram_url %}
+      {% include "manager/partials/field.html" with field=form.facebook_url %}
+      {% include "manager/partials/field.html" with field=form.tiktok_url %}
+      {% include "manager/partials/field.html" with field=form.address %}
+    </div>
+  </section>
+
+  <section class="m-card m-mt-lg" id="branding">
+    <h2 class="m-card__title">Homepage &amp; branding</h2>
+    <div class="m-form-grid m-mt">
+      {% include "manager/partials/field.html" with field=form.announcement full=True %}
+      {% include "manager/partials/field.html" with field=form.hero_title full=True %}
+      {% include "manager/partials/field.html" with field=form.hero_subtitle full=True %}
+      {% include "manager/partials/image_field.html" with field=form.logo full=True %}
+      {% include "manager/partials/image_field.html" with field=form.hero_image full=True %}
+    </div>
+  </section>
+
+  <div class="m-savebar">
+    <a class="m-btn m-btn--outline" href="{% url 'store:home' %}" target="_blank" rel="noopener">View shop ↗</a>
+    <button class="m-btn m-btn--primary" type="submit">Save settings</button>
+  </div>
+</form>
+{% endblock %}

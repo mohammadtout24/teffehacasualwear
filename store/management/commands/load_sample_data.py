@@ -8,7 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from store import sample_art
-from store.models import Category, Color, Product, ProductImage, Size
+from store.models import Category, Color, Product, ProductImage, ProductVariant, Size
 
 COLORS = {
     'Black': '#1f1f1f',
@@ -179,7 +179,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 product = Product.objects.create(
                     name=name,
-                    sku=f'TF-{1000 + index}',
+                    code=f'TF-{1000 + index}',
                     description=extra.get('desc', ''),
                     details=extra.get('details', ''),
                     price=Decimal(price),
@@ -190,6 +190,12 @@ class Command(BaseCommand):
                 product.categories.set([categories[p] for p in paths])
                 product.sizes.set([sizes[s] for s in size_names])
                 product.colors.set([colors[c] for c in color_names])
+                # Varied demo stock, including a few sold-out and "only 1-2 left" options.
+                ProductVariant.objects.bulk_create([
+                    ProductVariant(product=product, size=sizes[s], color=colors[c],
+                                   quantity=(index * 5 + si * 3 + ci * 7) % 12)
+                    for si, s in enumerate(size_names) for ci, c in enumerate(color_names)
+                ])
 
                 for order, color_name in enumerate(color_names):
                     hex_code = colors[color_name].hex_code

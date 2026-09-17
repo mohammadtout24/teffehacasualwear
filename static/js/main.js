@@ -63,6 +63,12 @@
     if (e.key === 'Escape') Object.keys(panels).forEach(closePanel);
   });
 
+  /* ---------- Confirm before destructive forms ---------- */
+  document.addEventListener('submit', (e) => {
+    const message = e.target.dataset && e.target.dataset.confirm;
+    if (message && !window.confirm(message)) e.preventDefault();
+  });
+
   /* ---------- Toasts ---------- */
   $$('.toast').forEach((toast, i) => {
     setTimeout(() => {
@@ -103,14 +109,22 @@
   /* ---------- Product gallery ---------- */
   const gallery = $('[data-gallery]');
   const mainImg = gallery && $('[data-gallery-main]', gallery);
+  // The photo most recently asked for; an older photo that finishes loading later is ignored.
+  let wantedSrc = mainImg ? mainImg.getAttribute('src') : '';
   function showImage(thumb) {
     if (!mainImg || !thumb) return;
     $$('.gallery__thumb', gallery).forEach((t) => t.classList.toggle('is-active', t === thumb));
-    if (mainImg.getAttribute('src') === thumb.dataset.src) return;
+    const src = thumb.dataset.src;
+    if (src === wantedSrc) return;
+    wantedSrc = src;
     mainImg.classList.add('is-swapping');
     const img = new Image();
-    img.onload = () => { mainImg.src = thumb.dataset.src; mainImg.classList.remove('is-swapping'); };
-    img.src = thumb.dataset.src;
+    img.onload = () => {
+      if (wantedSrc !== src) return;
+      mainImg.src = src;
+      mainImg.classList.remove('is-swapping');
+    };
+    img.src = src;
   }
   if (gallery) {
     gallery.addEventListener('click', (e) => {
@@ -126,6 +140,52 @@
     const sizeLabel = $('[data-size-label]', form);
     const errorBox = $('[data-form-error]', form);
 
+    // Stock per "size|color", capped by the server: 0 sold out, 1-2 left, 3 plenty.
+    const stockData = document.getElementById('variant-stock');
+    const stock = stockData ? JSON.parse(stockData.textContent) : null;
+    const stockMsg = $('[data-stock-msg]', form);
+    const addButton = $('button[type="submit"]', form);
+    const sizeInputs = () => $$('input[name="size"]', form);
+    const colorInputs = () => $$('input[name="color"]', form);
+    const picked = (inputs) => (inputs.find((input) => input.checked) || {}).value || '';
+    const left = (size, color) => (stock && stock[`${size}|${color}`]) || 0;
+    const sizeNames = () => (sizeInputs().length ? sizeInputs().map((input) => input.value) : ['']);
+
+    function updateStock() {
+      if (!stock || !addButton || !stockMsg) return;
+      const color = picked(colorInputs());
+      colorInputs().forEach((input) => {
+        input.closest('.swatch').classList.toggle('is-sold-out', sizeNames().every((size) => !left(size, input.value)));
+      });
+      const sizes = sizeInputs();
+      sizes.forEach((input) => {
+        const soldOut = !left(input.value, color);
+        input.disabled = soldOut;
+        input.closest('.size-box').classList.toggle('is-sold-out', soldOut);
+        if (soldOut && input.checked) {
+          input.checked = false;
+          if (sizeLabel) sizeLabel.textContent = 'Select a size';
+        }
+      });
+
+      const size = picked(sizes);
+      const allSizesOut = sizes.length > 0 && sizes.every((input) => input.disabled);
+      const count = !sizes.length || size ? left(size, color) : null;
+      let text = '';
+      if (allSizesOut || count === 0) text = colorInputs().length ? 'Sold out in this color' : 'Sold out';
+      else if (count && count <= 2) text = `Only ${count} left`;
+      stockMsg.textContent = text;
+      stockMsg.hidden = !text;
+      stockMsg.classList.toggle('is-out', allSizesOut || count === 0);
+      addButton.disabled = allSizesOut || count === 0;
+
+      const qty = $('input[name="quantity"]', form);
+      if (qty) {
+        qty.max = count && count <= 2 ? count : 20;
+        if (parseInt(qty.value, 10) > parseInt(qty.max, 10)) qty.value = qty.max;
+      }
+    }
+
     form.addEventListener('change', (e) => {
       if (e.target.name === 'color') {
         colorLabel && (colorLabel.textContent = e.target.value);
@@ -137,7 +197,20 @@
         e.target.closest('.option').classList.remove('is-invalid');
         errorBox.hidden = true;
       }
+      updateStock();
     });
+
+    // If the pre-selected color is completely sold out, start on one that isn't.
+    if (stock) {
+      const current = colorInputs().find((input) => input.checked);
+      const hasStock = (input) => sizeNames().some((size) => left(size, input.value));
+      const better = current && !hasStock(current) && colorInputs().find(hasStock);
+      if (better) {
+        better.checked = true;
+        better.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+    updateStock();
 
     form.addEventListener('submit', async (e) => {
       const sizeInputs = $$('input[name="size"]', form);
@@ -182,16 +255,50 @@
       } finally {
         button.disabled = false;
         button.textContent = label;
+        updateStock();
       }
     });
   }
 
-  /* ---------- Checkout: prevent double submission ---------- */
+  /* ---------- Checkout: promo code + prevent double submission ---------- */
   const checkout = $('[data-checkout]');
   if (checkout) {
-    checkout.addEventListener('submit', () => {
-      const btn = $('[data-submit]', checkout);
-      setTimeout(() => { btn.disabled = true; btn.textContent = 'Placing your order…'; }, 0);
+    checkout.addEventListener('submit', (e) => {
+      const promoBtn = e.submitter && e.submitter.name === 'action' ? e.submitter : null;
+      const btn = promoBtn || $('[data-submit]', checkout);
+      const busy = !promoBtn ? 'Placing your order…' : promoBtn.value === 'apply_promo' ? 'Applying…' : 'Removing…';
+      setTimeout(() => { btn.disabled = true; btn.textContent = busy; }, 0);
     });
+
+    // Choosing a saved address fills in the delivery fields.
+    const savedAddresses = $('[data-saved-addresses]', checkout);
+    if (savedAddresses) {
+      const setField = (name, value) => {
+        const input = checkout.querySelector(`[name="${name}"]`);
+        if (input) input.value = value;
+      };
+      savedAddresses.addEventListener('change', (e) => {
+        const radio = e.target;
+        if (radio.name !== 'saved_address') return;
+        if (radio.hasAttribute('data-new')) {
+          setField('city', '');
+          setField('address', '');
+          const city = checkout.querySelector('[name="city"]');
+          city && city.focus();
+        } else {
+          ['full_name', 'phone', 'city', 'address'].forEach((name) => setField(name, radio.dataset[name]));
+        }
+      });
+    }
+
+    // Enter in the promo field applies the code instead of placing the order.
+    const promoInput = $('[data-promo-input]', checkout);
+    if (promoInput) {
+      promoInput.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        $('[data-promo-apply]', checkout).click();
+      });
+    }
   }
 })();

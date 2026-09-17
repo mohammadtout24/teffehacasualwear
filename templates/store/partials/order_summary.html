@@ -1,0 +1,32 @@
+{% load store_tags %}
+<div class="summary">
+  <h2 class="summary__title">Order details</h2>
+  <ul class="mini-cart mini-cart--summary">
+    {% for item in order.items.all %}
+      <li class="mini-cart__item">
+        <span class="mini-cart__img">
+          {% with img=item.image %}{% if img %}<img src="{{ img.image.url }}" alt="">{% endif %}{% endwith %}
+          <span class="mini-cart__qty">{{ item.quantity }}</span>
+        </span>
+        <div class="mini-cart__info">
+          <span class="mini-cart__name">{{ item.product_name }}</span>
+          <span class="mini-cart__meta">{% if item.color %}{{ item.color }}{% endif %}{% if item.color and item.size %} · {% endif %}{% if item.size %}Size {{ item.size }}{% endif %}</span>
+        </div>
+        <span class="mini-cart__price">{% money item.line_total order.currency %}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  <div class="summary-row"><span>Subtotal</span><span>{% money order.subtotal order.currency %}</span></div>
+  {% if order.discount %}
+    <div class="summary-row summary-row--discount"><span>Discount ({{ order.promo_code }})</span><span>−{% money order.discount order.currency %}</span></div>
+  {% elif order.promo_code %}
+    <div class="summary-row"><span>Promo code</span><span>{{ order.promo_code }}</span></div>
+  {% endif %}
+  <div class="summary-row"><span>Delivery</span><span>{% if order.delivery_fee %}{% money order.delivery_fee order.currency %}{% else %}Free{% endif %}</span></div>
+  <div class="summary-row summary-row--total"><span>Total (cash on delivery)</span><span>{% money order.total order.currency %}</span></div>
+
+  <div class="success__address">
+    <h3>Delivering to</h3>
+    <p>{{ order.full_name }}<br>{{ order.address }}<br>{{ order.city }}<br>{{ order.phone }}</p>
+  </div>
+</div>

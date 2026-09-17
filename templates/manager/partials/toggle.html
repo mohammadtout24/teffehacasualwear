@@ -1,0 +1,7 @@
+<form method="post" action="{{ url }}" class="m-toggle-form" data-toggle-form>
+  {% csrf_token %}
+  <input type="hidden" name="field" value="{{ field }}">
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <button type="submit" class="m-switch" role="switch" aria-checked="{{ value|yesno:'true,false' }}" aria-label="{{ label }}{% if name %}: {{ name }}{% endif %}"></button>
+  <span class="m-toggle-label">{{ label }}</span>
+</form>

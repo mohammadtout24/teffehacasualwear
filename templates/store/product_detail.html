@@ -77,13 +77,14 @@
           {% endif %}
         {% endwith %}
 
+        <p class="stock-msg" data-stock-msg aria-live="polite" hidden></p>
         <div class="buy-form__row">
           <div class="qty" data-qty>
             <button type="button" aria-label="Decrease quantity" data-step="-1">−</button>
             <input type="number" name="quantity" value="1" min="1" max="20" aria-label="Quantity">
             <button type="button" aria-label="Increase quantity" data-step="1">+</button>
           </div>
-          {% if product.in_stock %}
+          {% if product.is_available %}
             <button class="btn btn--primary btn--grow" type="submit">Add to bag</button>
           {% else %}
             <button class="btn btn--primary btn--grow" type="button" disabled>Sold out</button>
@@ -91,6 +92,7 @@
         </div>
         <p class="form-error" data-form-error hidden></p>
       </form>
+      {{ product.public_stock|json_script:"variant-stock" }}
 
       <ul class="assurances">
         <li>
@@ -124,7 +126,7 @@
           </div>
         </details>
       </div>
-      {% if product.sku %}<p class="muted small">SKU: {{ product.sku }}</p>{% endif %}
+      {% if product.code %}<p class="muted small">Product ID: {{ product.code }}</p>{% endif %}
     </div>
   </div>
 </div>

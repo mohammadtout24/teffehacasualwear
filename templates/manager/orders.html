@@ -1,0 +1,73 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}Orders{% endblock %}
+{% block heading %}Orders{% endblock %}
+
+{% block content %}
+<nav class="m-tabs" aria-label="Filter by status">
+  {% for value, label, count in tabs %}
+    <a class="m-tab{% if status == value %} is-active{% endif %}" href="?status={{ value }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}" {% if status == value %}aria-current="page"{% endif %}>
+      {{ label }} <span class="m-tab__count">{{ count }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
+<section class="m-card m-card--flush">
+  <form class="m-toolbar m-card__toolbar" method="get" role="search">
+    <input type="hidden" name="status" value="{{ status }}">
+    <div class="m-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input type="search" name="q" value="{{ query }}" placeholder="Search order number, name, phone or city" aria-label="Search orders">
+    </div>
+    <button class="m-btn m-btn--outline m-btn--sm" type="submit">Search</button>
+    {% if query %}<a class="m-btn m-btn--ghost m-btn--sm" href="?status={{ status }}">Clear</a>{% endif %}
+  </form>
+
+  {% if page_obj.object_list %}
+    <div class="m-table-wrap">
+      <table class="m-table m-table--cards">
+        <thead>
+          <tr><th>Order</th><th>Customer</th><th>City</th><th class="num">Items</th><th class="num">Total</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for order in page_obj %}
+            <tr class="m-clickable" data-href="{% url 'manager:order' order.number %}">
+              <td class="m-grow">
+                <div class="m-cell-main">
+                  <a href="{% url 'manager:order' order.number %}"><strong>{{ order.number }}</strong></a>
+                  <span class="m-muted m-small">{{ order.created_at|date:"j M Y, H:i" }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="m-cell-main">
+                  <span>{{ order.full_name }}</span>
+                  <span class="m-muted m-small">{{ order.phone }}</span>
+                </div>
+              </td>
+              <td class="m-hide-sm">{{ order.city }}</td>
+              <td class="num m-hide-sm">{{ order.item_count }}</td>
+              <td class="num"><strong>{% money order.total order.currency %}</strong></td>
+              <td><span class="m-badge m-badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "manager/partials/pagination.html" %}
+  {% else %}
+    <div class="m-empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+      {% if query %}
+        <h3>No orders match “{{ query }}”</h3>
+        <p>Try a phone number, the customer’s name or the order number (like TF10001).</p>
+      {% elif status == 'all' %}
+        <h3>No orders yet</h3>
+        <p>When customers check out, their orders appear here and are emailed to you.</p>
+      {% else %}
+        <h3>No orders are “{{ status_label }}”</h3>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

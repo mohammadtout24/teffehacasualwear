@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Create an account — Teffaha Casual Wear{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="auth">
+    <div class="auth__card">
+      <p class="eyebrow">Join Teffaha</p>
+      <h1 class="auth__title">Create account</h1>
+      <p class="auth__lead">Save your delivery address, check out in seconds and see all your orders. You can still order as a guest anytime.</p>
+      <form method="post" class="form-stack" novalidate>
+        {% csrf_token %}
+        {% include "accounts/partials/fields.html" %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button class="btn btn--primary btn--block btn--lg" type="submit">Create account</button>
+      </form>
+      <p class="auth__switch">Already have an account? <a href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Log in</a></p>
+      {% if '/checkout/' in next %}
+        <p class="auth__guest"><a class="link-btn" href="{{ next }}">Continue as guest</a></p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

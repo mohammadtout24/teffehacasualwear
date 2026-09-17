@@ -1,0 +1,99 @@
+{% extends "manager/base.html" %}
+{% load store_tags %}
+
+{% block title %}Products{% endblock %}
+{% block heading %}Products{% endblock %}
+
+{% block actions %}
+  <a class="m-btn m-btn--primary" href="{% url 'manager:product_add' %}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add product
+  </a>
+{% endblock %}
+
+{% block content %}
+{% if sample_count %}
+  <div class="m-banner">
+    <div>
+      <strong>{{ sample_count }} sample product{{ sample_count|pluralize }} {{ sample_count|pluralize:"is,are" }} showing in your shop.</strong>
+      <p>They were added so the website looks complete. Remove them once your own products are in.</p>
+    </div>
+    <form method="post" action="{% url 'manager:remove_sample_products' %}" data-confirm="Remove all {{ sample_count }} sample products? Your own products stay.">
+      {% csrf_token %}
+      <button class="m-btn m-btn--outline m-btn--sm" type="submit">Remove sample products</button>
+    </form>
+  </div>
+{% endif %}
+
+<section class="m-card m-card--flush">
+  <form class="m-toolbar m-card__toolbar" method="get" role="search">
+    <div class="m-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input type="search" name="q" value="{{ query }}" placeholder="Search by name or product ID" aria-label="Search products">
+    </div>
+    <select name="category" aria-label="Category" data-autosubmit>
+      <option value="">All categories</option>
+      {% for cat in categories %}<option value="{{ cat.pk }}" {% if category_id == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.indent }}{{ cat.name }}</option>{% endfor %}
+    </select>
+    <select name="status" aria-label="Show" data-autosubmit>
+      {% for value, label in product_filters %}<option value="{{ value }}" {% if value == status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="m-btn m-btn--outline m-btn--sm" type="submit">Search</button>
+    {% if query or category_id or status != 'all' %}<a class="m-btn m-btn--ghost m-btn--sm" href="{% url 'manager:products' %}">Clear</a>{% endif %}
+  </form>
+
+  {% if page_obj.object_list %}
+    <div class="m-table-wrap">
+      <table class="m-table m-table--cards m-table--products">
+        <thead>
+          <tr><th colspan="2">Product</th><th class="num">Price</th><th class="num">Stock</th><th>For sale</th><th>In shop</th><th>Best seller</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for product in page_obj %}
+            {% url 'manager:product_toggle' product.pk as toggle_url %}
+            <tr class="m-clickable" data-href="{% url 'manager:product_edit' product.pk %}">
+              <td class="m-thumb-cell">
+                {% with img=product.main_image %}{% if img %}<img class="m-thumb" src="{{ img.image.url }}" alt="" loading="lazy">{% else %}<span class="m-thumb m-thumb--empty">No photo</span>{% endif %}{% endwith %}
+              </td>
+              <td class="m-grow">
+                <div class="m-cell-main">
+                  <a href="{% url 'manager:product_edit' product.pk %}"><strong>{{ product.name }}</strong></a>
+                  <span class="m-muted m-small">{% if product.code %}<span class="m-id">ID {{ product.code }}</span>{% else %}<span class="m-id-missing">No ID yet</span>{% endif %} · {% for cat in product.categories.all %}{{ cat.name }}{% if not forloop.last %}, {% endif %}{% empty %}No category{% endfor %}</span>
+                  {% if product.is_sample %}<span><span class="m-badge m-badge--plain">Sample</span></span>{% endif %}
+                </div>
+              </td>
+              <td class="num">
+                <strong>{% money product.price %}</strong>
+                {% if product.on_sale %}<br><span class="m-strike">{% money product.compare_at_price %}</span>{% endif %}
+              </td>
+              <td class="num">
+                {% with total=product.total_stock %}
+                  <strong>{{ total }}</strong><span class="m-toggle-label"> in stock</span>
+                  {% if total == 0 %}<br><span class="m-badge m-badge--out">Out of stock</span>
+                  {% elif product.low_stock %}<br><span class="m-badge m-badge--low">Running low</span>{% endif %}
+                {% endwith %}
+              </td>
+              <td>{% include "manager/partials/toggle.html" with url=toggle_url field="in_stock" value=product.in_stock label="For sale" name=product.name %}</td>
+              <td>{% include "manager/partials/toggle.html" with url=toggle_url field="is_active" value=product.is_active label="In shop" name=product.name %}</td>
+              <td>{% include "manager/partials/toggle.html" with url=toggle_url field="is_featured" value=product.is_featured label="Best seller" name=product.name %}</td>
+              <td class="num m-hide-sm"><a class="m-btn m-btn--outline m-btn--sm" href="{% url 'manager:product_edit' product.pk %}">Edit</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "manager/partials/pagination.html" %}
+  {% else %}
+    <div class="m-empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 3.5 6l2 4.2L8 9v12h8V9l2.5 1.2 2-4.2L16 3a4 4 0 0 1-8 0Z"/></svg>
+      {% if query or category_id or status != 'all' %}
+        <h3>No products match these filters</h3>
+        <p><a class="m-link" href="{% url 'manager:products' %}">Show all products</a></p>
+      {% else %}
+        <h3>No products yet</h3>
+        <p>Add your first product — photos, price, sizes and colors.</p>
+        <a class="m-btn m-btn--primary m-mt" href="{% url 'manager:product_add' %}">Add product</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,19 +1,38 @@
-from decimal import Decimal
+import os
 
 from django import template
+from django.contrib.staticfiles import finders
+from django.templatetags.static import static
+
+from ..money import format_money
 
 register = template.Library()
+
+
+@register.simple_tag
+def asset(path):
+    """Static file URL with a version number, so browsers fetch the new CSS/JS
+    after every change instead of reusing an old cached copy."""
+    url = static(path)
+    found = finders.find(path)
+    return f'{url}?v={int(os.path.getmtime(found))}' if found else url
+
+
+def _store_currency(context):
+    store = context.get('store')
+    return store.currency if store else '$'
 
 
 @register.simple_tag(takes_context=True)
 def money(context, amount, currency=None):
     """Format an amount with the store currency: 12 -> "$12", 12.5 -> "$12.50"."""
-    if currency is None:
-        store = context.get('store')
-        currency = store.currency if store else '$'
-    amount = Decimal(amount or 0)
-    text = f'{amount:,.0f}' if amount == amount.to_integral() else f'{amount:,.2f}'
-    return f'{currency}{text}'
+    return format_money(amount, currency or _store_currency(context))
+
+
+@register.simple_tag(takes_context=True)
+def promo_label(context, promo):
+    """What a promo code gives: "10% off", "$5 off" or "Free delivery"."""
+    return promo.describe(_store_currency(context)) if promo else ''
 
 
 @register.simple_tag(takes_context=True)

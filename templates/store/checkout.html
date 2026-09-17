@@ -20,17 +20,60 @@
   <form method="post" class="checkout-layout" novalidate data-checkout>
     {% csrf_token %}
     <div class="checkout-form">
+      {% if not user.is_authenticated %}
+        <div class="checkout-login">
+          <p><strong>Have an account?</strong> Log in to use your saved address — or just continue as a guest.</p>
+          <div class="checkout-login__actions">
+            <a class="btn btn--outline btn--small" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}">Log in</a>
+            <a class="btn btn--small link-plain" href="{% url 'accounts:signup' %}?next={{ request.path|urlencode }}">Sign up</a>
+          </div>
+        </div>
+      {% endif %}
       <h2 class="form-section__title">Delivery details</h2>
+      {% if saved_addresses %}
+        <fieldset class="saved-addresses" data-saved-addresses>
+          <legend class="saved-addresses__legend">Deliver to</legend>
+          <div class="saved-addresses__grid">
+            {% for address in saved_addresses %}
+              <label class="saved-address">
+                <input type="radio" name="saved_address" value="{{ address.pk }}"
+                       {% if selected_address == address.pk|stringformat:"s" %}checked{% endif %}
+                       data-full_name="{{ address.full_name }}" data-phone="{{ address.phone }}"
+                       data-city="{{ address.city }}" data-address="{{ address.address }}">
+                <span class="saved-address__body">
+                  <span class="saved-address__title">
+                    <strong>{{ address.label|default:address.city }}</strong>
+                    {% if address.is_default %}<span class="tag-default">Default</span>{% endif %}
+                  </span>
+                  <span>{{ address.full_name }}</span>
+                  <span>{{ address.phone }}</span>
+                  <span>{{ address.address }}{% if address.city|lower != address.address|lower %}, {{ address.city }}{% endif %}</span>
+                </span>
+              </label>
+            {% endfor %}
+            <label class="saved-address saved-address--new">
+              <input type="radio" name="saved_address" value="new" {% if selected_address == 'new' %}checked{% endif %} data-new>
+              <span class="saved-address__body">
+                <strong>+ New address</strong>
+                <span>Deliver somewhere else</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+      {% endif %}
       {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
       <div class="form-grid">
-        {% for field in form %}
+        {% for field in form %}{% if field.name != 'save_address' %}
           <div class="field{% if field.name == 'address' or field.name == 'notes' %} field--full{% endif %}{% if field.errors %} has-error{% endif %}">
             <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="req" aria-hidden="true">*</span>{% endif %}</label>
             {{ field }}
             {% for error in field.errors %}<p class="field__error">{{ error }}</p>{% endfor %}
           </div>
-        {% endfor %}
+        {% endif %}{% endfor %}
       </div>
+      {% if 'save_address' in form.fields %}
+        <label class="checkbox checkout-save">{{ form.save_address }}<span>{{ form.save_address.label }}</span></label>
+      {% endif %}
 
       <h2 class="form-section__title">Payment</h2>
       <label class="pay-option is-selected">
@@ -61,12 +104,39 @@
             <div class="mini-cart__info">
               <span class="mini-cart__name">{{ line.product.name }}</span>
               <span class="mini-cart__meta">{% if line.color %}{{ line.color }}{% endif %}{% if line.color and line.size %} · {% endif %}{% if line.size %}Size {{ line.size }}{% endif %}</span>
+              {% if line.low %}<span class="mini-cart__meta stock-note">Only {{ line.available }} left</span>{% endif %}
             </div>
             <span class="mini-cart__price">{% money line.line_total %}</span>
           </li>
         {% endfor %}
       </ul>
+
+      <div class="promo">
+        {% if totals.promo %}
+          <div class="promo__applied">
+            <span class="promo__tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9-9-9Z"/><circle cx="8" cy="8" r="1.5"/></svg>
+              <strong>{{ totals.promo.code }}</strong>
+              <span>{% promo_label totals.promo %}</span>
+            </span>
+            <button class="link-btn" type="submit" name="action" value="remove_promo">Remove</button>
+          </div>
+        {% else %}
+          <label class="promo__label" for="id_promo_code">Promo code</label>
+          <div class="promo__row{% if promo_error %} has-error{% endif %}">
+            <input type="text" id="id_promo_code" name="promo_code" value="{{ promo_input }}" maxlength="30"
+                   autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter code"
+                   {% if promo_error %}aria-invalid="true" aria-describedby="promo-error"{% endif %} data-promo-input>
+            <button class="btn btn--outline btn--small" type="submit" name="action" value="apply_promo" data-promo-apply>Apply</button>
+          </div>
+        {% endif %}
+        {% if promo_error %}<p class="field__error" id="promo-error" role="alert">{{ promo_error }}</p>{% endif %}
+      </div>
+
       <div class="summary-row"><span>Subtotal</span><span>{% money totals.subtotal %}</span></div>
+      {% if totals.discount %}
+        <div class="summary-row summary-row--discount"><span>Discount ({{ totals.promo.code }})</span><span>−{% money totals.discount %}</span></div>
+      {% endif %}
       <div class="summary-row"><span>Delivery</span><span>{% if totals.delivery_fee %}{% money totals.delivery_fee %}{% else %}Free{% endif %}</span></div>
       <div class="summary-row summary-row--total"><span>Total to pay on delivery</span><span>{% money totals.total %}</span></div>
       <a class="link-btn" href="{% url 'store:cart' %}">Edit bag</a>
