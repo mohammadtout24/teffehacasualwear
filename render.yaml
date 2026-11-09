@@ -23,7 +23,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: LOAD_SAMPLE_DATA
-        value: "False"
+        value: "True"
       - key: WEB_CONCURRENCY
         value: 2
       - key: ORDER_NOTIFICATION_EMAIL
